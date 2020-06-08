@@ -137,7 +137,7 @@ file_input.on_change('value', upload_sim_datalog)
 file_input2 = FileInput(accept=".ulog")
 file_input2.on_change('value', upload_real_datalog)
 
-intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator TEST</H2>""",width=500, height=100, align="center")
+intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
 sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
 real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
 
