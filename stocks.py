@@ -125,16 +125,18 @@ def selection_change(attrname, old, new):
 
 def upload_sim_datalog(attr, old, new):
     print("sim data upload succeeded")
-    print(file_input.value)
+#    print(file_input.value)
+    df1 = pd.read_csv(file_input.filename)
 
 def upload_real_datalog(attr, old, new):
     print("real data upload succeeded")
-    print(file_input.value)
+#    print(file_input2.value)
+    df2 = pd.read_csv(file_input2.filename)
 
     
-file_input = FileInput(accept=".ulog", align="center")
+file_input = FileInput(accept=".ulog, .csv")
 file_input.on_change('value', upload_sim_datalog)
-file_input2 = FileInput(accept=".ulog")
+file_input2 = FileInput(accept=".ulog, .csv")
 file_input2.on_change('value', upload_real_datalog)
 
 intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
