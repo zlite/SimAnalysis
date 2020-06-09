@@ -18,11 +18,14 @@ at your command prompt. Then navigate to the URL
 .. _README: https://github.com/bokeh/bokeh/blob/master/examples/app/stocks/README.md
 
 '''
+import px4tools
 from functools import lru_cache
 from os.path import dirname, join
 from bokeh.io import output_file, show
 from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
+from bokeh.models import CheckboxGroup
+
 from bokeh.models import Div
 
 
@@ -33,25 +36,24 @@ from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
 from bokeh.plotting import figure
 
-DATA_DIR = join(dirname(__file__), 'daily')
+DATA_DIR = join(dirname(__file__), 'datalogs')
 
-DEFAULT_TICKERS = ['AAPL', 'GOOG', 'INTC', 'BRCM', 'YHOO']
+DEFAULT_FIELDS = ['XY', 'Lat Lon', 'Gyro', 'Baro']
 
 def nix(val, lst):
     return [x for x in lst if x != val]
 
 @lru_cache()
-def load_ticker(ticker):
-    fname = join(DATA_DIR, 'table_%s.csv' % ticker.lower())
-    data = pd.read_csv(fname, header=None, parse_dates=['date'],
-                       names=['date', 'foo', 'o', 'h', 'l', 'c', 'v'])
-    data = data.set_index('date')
-    return pd.DataFrame({ticker: data.c, ticker+'_returns': data.c.diff()})
+def load_field(field):
+    fname = join(DATA_DIR, '%s.csv' % field.lower())
+    data = pd.read_csv(file_input.filename)
+    data = data.set_index('x')
+    return pd.DataFrame({field: data.y)
 
 @lru_cache()
 def get_data(t1, t2):
-    df1 = load_ticker(t1)
-    df2 = load_ticker(t2)
+    df1 = load_field(t1)
+    df2 = load_field(t2)
     data = pd.concat([df1, df2], axis=1)
     data = data.dropna()
     data['t1'] = data[t1]
@@ -63,8 +65,8 @@ def get_data(t1, t2):
 # set up widgets
 
 stats = PreText(text='This is some initial text', width=500)
-ticker1 = Select(value='AAPL', options=nix('GOOG', DEFAULT_TICKERS))
-ticker2 = Select(value='GOOG', options=nix('AAPL', DEFAULT_TICKERS))
+data1 = Select(value='XY', options=nix('Lat Lon', DEFAULT_FIELDS))
+data2 = Select(value='XY', options=nix('Lat Lon', DEFAULT_FIELDS))
 
 # set up plots
 
@@ -88,16 +90,16 @@ ts2.circle('date', 't2', size=1, source=source, color=None, selection_color="ora
 
 # set up callbacks
 
-def ticker1_change(attrname, old, new):
-    ticker2.options = nix(new, DEFAULT_TICKERS)
+def data1_change(attrname, old, new):
+    data2.options = nix(new, DEFAULT_FIELDS)
     update()
 
-def ticker2_change(attrname, old, new):
-    ticker1.options = nix(new, DEFAULT_TICKERS)
+def data2_change(attrname, old, new):
+    data1.options = nix(new, DEFAULT_FIELDS)
     update()
 
 def update(selected=None):
-    t1, t2 = ticker1.value, ticker2.value
+    t1, t2 = data1.value, data2.value
 
     df = get_data(t1, t2)
     data = df[['t1', 't2', 't1_returns', 't2_returns']]
@@ -112,11 +114,11 @@ def update(selected=None):
 def update_stats(data, t1, t2):
     stats.text = str(data[[t1, t2, t1+'_returns', t2+'_returns']].describe())
 
-ticker1.on_change('value', ticker1_change)
-ticker2.on_change('value', ticker2_change)
+data1.on_change('value', data1_change)
+data2.on_change('value', data2_change)
 
 def selection_change(attrname, old, new):
-    t1, t2 = ticker1.value, ticker2.value
+    t1, t2 = data1.value, data2.value
     data = get_data(t1, t2)
     selected = source.selected.indices
     if selected:
@@ -125,18 +127,16 @@ def selection_change(attrname, old, new):
 
 def upload_sim_datalog(attr, old, new):
     print("sim data upload succeeded")
-#    print(file_input.value)
     df1 = pd.read_csv(file_input.filename)
 
 def upload_real_datalog(attr, old, new):
     print("real data upload succeeded")
-#    print(file_input2.value)
     df2 = pd.read_csv(file_input2.filename)
 
     
-file_input = FileInput(accept=".ulog, .csv")
+file_input = FileInput(accept=".ulg, .csv")
 file_input.on_change('value', upload_sim_datalog)
-file_input2 = FileInput(accept=".ulog, .csv")
+file_input2 = FileInput(accept=".ulg, .csv")
 file_input2.on_change('value', upload_real_datalog)
 
 intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
@@ -146,10 +146,10 @@ real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",w
 source.selected.on_change('indices', selection_change)
 
 # set up layout
-widgets = column(stats, ticker1, ticker2)
+widgets = column(data1, data2)
 main_row = row(corr, widgets)
 series = column(ts1, ts2)
-layout = column(series, main_row)
+layout = column(main_row, series)
 
 # initialize
 update()
