@@ -36,110 +36,128 @@ from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
 from bokeh.plotting import figure
 
-DEFAULT_Fields = ['XY', 'LatLon', 'VxVy']
+DATA_DIR = join(dirname(__file__), 'datalogs')
+
+DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
 def nix(val, lst):
     return [x for x in lst if x != val]
 
+@lru_cache()
+def load_data(data_type):
+    fname = join(DATA_DIR, '%s.csv' % data_type)  # fix this later
+    data = pd.read_csv(fname)
+    return pd.DataFrame(data)
+#    return pd.DataFrame({data_type: data.y})
+
+@lru_cache()
+def get_data():
+    dfsim = load_data('sim')
+#    print("sim",dfsim.y)
+    dfreal = load_data('real')
+#    print("real",dfreal.y)
+#    data = pd.concat([dfsim, dfreal], keys=['dfsim', 'dfreal'], names=['Sim', 'Real'], ignore_index = True, axis=1)
+    data = pd.concat([dfsim, dfreal], axis=1)
+    data = data.dropna()   # remove missing values
+    print(data.y)
+    return dfsim,dfreal
 
 # set up widgets
 
-stats = PreText(text='This is some initial text', width=500)
+# stats = PreText(text='This is some initial text', width=500)
+sim = Select(value='XY', options=nix('VxVy', DEFAULT_FIELDS))
+real = Select(value='VxVy', options=nix('XY', DEFAULT_FIELDS))
 
 # set up plots
 
-source = ColumnDataSource(data=dict(date=[], t1=[], t2=[], t1_returns=[], t2_returns=[]))
-source_static = ColumnDataSource(data=dict(date=[], t1=[], t2=[], t1_returns=[], t2_returns=[]))
+simsource = ColumnDataSource(data=dict(x=[], y=[]))
+simsource_static = ColumnDataSource(data=dict(x=[], y=[]))
+realsource = ColumnDataSource(data=dict(x=[], y=[]))
+realsource_static = ColumnDataSource(data=dict(x=[], y=[]))
+
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
-corr = figure(plot_width=350, plot_height=350,
-              tools='pan,wheel_zoom,box_select,reset')
-corr.circle('Sim X', 'Real X', size=2, source=source,
-            selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
+# corr = figure(plot_width=350, plot_height=350, tools='pan,wheel_zoom,box_select,reset')
+# corr.circle('Sim X', 'Real X', size=2, source=source, selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='datetime', active_drag="xbox_select")
-ts1.line('date', 't1', source=source_static)
-ts1.circle('date', 't1', size=1, source=source, color=None, selection_color="orange")
+ts1.line('x', 'y', source=simsource_static)
+ts1.circle('x', 'y', size=1, source=simsource, color=None, selection_color="orange")
 
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='datetime', active_drag="xbox_select")
 ts2.x_range = ts1.x_range
-ts2.line('date', 't2', source=source_static)
-ts2.circle('date', 't2', size=1, source=source, color=None, selection_color="orange")
+ts2.line('x', 'y', source=realsource_static)
+ts2.circle('x', 'y', size=1, source=realsource, color=None, selection_color="orange")
 
 # set up callbacks
 
-def ticker1_change(attrname, old, new):
-    ticker2.options = nix(new, DEFAULT_FIELDS)
+def sim_change(attrname, old, new):
+    real.options = nix(new, DEFAULT_FIELDS)
     update()
 
-def ticker2_change(attrname, old, new):
-    ticker1.options = nix(new, DEFAULT_FIELDS)
+def real_change(attrname, old, new):
+    sim.options = nix(new, DEFAULT_FIELDS)
     update()
 
 def update(selected=None):
 
-    df = get_data(t1, t2)
-    data = df[['t1', 't2', 't1_returns', 't2_returns']]
-    source.data = data
-    source_static.data = data
+    sim, real = get_data()
+    simsource.data = sim
+    simsource_static.data = sim
+    realsource.data = real
+    realsource_static.data = real
 
-    update_stats(df, t1, t2)
+#    update_stats(data, sim, real)
 
-    corr.title.text = '%s returns vs. %s returns' % (t1, t2)
-    ts1.title.text, ts2.title.text = t1, t2
+#    corr.title.text = 'Sim vs Real'
+    ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
-def update_stats(data, t1, t2):
+def update_stats(data, sim, real):
     stats.text = str(data[[df1.y, df2.y, 'Sim', 'Real']].describe())
 
-ticker1.on_change('value', ticker1_change)
-ticker2.on_change('value', ticker2_change)
+sim.on_change('value', sim_change)
+real.on_change('value', real_change)
 
 def selection_change(attrname, old, new):
-    t1, t2 = ticker1.value, ticker2.value
-    data = get_data(t1, t2)
-    selected = source.selected.indices
+#    sim, real = sim.value, real.value
+    data = get_data()
+    selected = simsource.selected.indices
     if selected:
         data = data.iloc[selected, :]
-    update_stats(data, t1, t2)
-
-def upload_sim_datalog(attr, old, new):
-    print("sim data upload succeeded")
-    df1 = pd.read_csv(file_input.filename)
-
-def upload_real_datalog(attr, old, new):
-    print("real data upload succeeded")
-    df2 = pd.read_csv(file_input2.filename)
-
+#    update_stats(data, sim, real)
     
-file_input = FileInput(accept=".ulg, .csv")
-file_input.on_change('value', upload_sim_datalog)
-file_input2 = FileInput(accept=".ulg, .csv")
-file_input2.on_change('value', upload_real_datalog)
+simsource.selected.on_change('indices', selection_change)
+    
+#file_input = FileInput(accept=".ulg, .csv")
+#file_input.on_change('value', get_data())
+#file_input2 = FileInput(accept=".ulg, .csv")
+#file_input2.on_change('value', get_data())
 
 intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
 sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
 real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
-checkbox_group = CheckboxGroup(
-        labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
+#checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
-source.selected.on_change('indices', selection_change)
+simsource.selected.on_change('indices', selection_change)
 
 # set up layout
-widgets = column(stats, ticker1, ticker2)
-main_row = row(corr, widgets)
+widgets = column(sim, real)
+# widgets = column(stats, sim, real)
+# main_row = row(corr, widgets)
+main_row = row(widgets)
 series = column(ts1, ts2)
-layout = column(series, main_row)
+layout = column(main_row, series)
 
 # initialize
 update()
 curdoc().add_root(intro_text)
 curdoc().add_root(sim_upload_text)
-curdoc().add_root(file_input)
+#curdoc().add_root(file_input)
 curdoc().add_root(real_upload_text)
-curdoc().add_root(file_input2)
-curdoc().add_root(checkbox_group)
+#curdoc().add_root(file_input2)
+#curdoc().add_root(checkbox_group)
 curdoc().add_root(layout)
-curdoc().title = "Stocks"
+curdoc().title = "Flight data"
 
 
 
