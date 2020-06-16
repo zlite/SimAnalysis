@@ -57,9 +57,10 @@ def get_data():
     dfreal = load_data('real')
 #    print("real",dfreal.y)
 #    data = pd.concat([dfsim, dfreal], keys=['dfsim', 'dfreal'], names=['Sim', 'Real'], ignore_index = True, axis=1)
-    data = pd.concat([dfsim, dfreal], axis=1)
-    data = data.dropna()   # remove missing values
-    print(data.y)
+#    data = pd.concat([dfsim, dfreal], axis=1)
+#    data = data.dropna()   # remove missing values
+    dfsim = pd.concat([dfsim.x,dfsim.y], axis=1)
+    dfreal = pd.concat([dfreal.x,dfreal.y], axis=1)
     return dfsim,dfreal
 
 # set up widgets
@@ -70,10 +71,11 @@ real = Select(value='VxVy', options=nix('XY', DEFAULT_FIELDS))
 
 # set up plots
 
-simsource = ColumnDataSource(data=dict(x=[], y=[]))
-simsource_static = ColumnDataSource(data=dict(x=[], y=[]))
-realsource = ColumnDataSource(data=dict(x=[], y=[]))
-realsource_static = ColumnDataSource(data=dict(x=[], y=[]))
+dfsim, dfreal = get_data()
+simsource = ColumnDataSource(dfsim)
+simsource_static = ColumnDataSource(dfsim)
+realsource = ColumnDataSource(dfreal)
+realsource_static = ColumnDataSource(dfreal)
 
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
@@ -100,12 +102,14 @@ def real_change(attrname, old, new):
     update()
 
 def update(selected=None):
-
-    sim, real = get_data()
-    simsource.data = sim
-    simsource_static.data = sim
-    realsource.data = real
-    realsource_static.data = real
+    global simsource, source_static, realsource, realsource_static
+    dfsim, dfreal = get_data()
+    print("sim", sim)
+    print("real",real)
+    simsource = dfsim
+    simsource_static = dfsim
+    realsource = dfreal
+    realsource_static = dfreal
 
 #    update_stats(data, sim, real)
 
@@ -150,6 +154,7 @@ layout = column(main_row, series)
 
 # initialize
 update()
+
 curdoc().add_root(intro_text)
 curdoc().add_root(sim_upload_text)
 #curdoc().add_root(file_input)
