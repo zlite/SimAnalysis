@@ -52,9 +52,9 @@ def load_data(data_type):
 
 @lru_cache()
 def get_data():
-    dfsim = load_data('sim')
+    dfsim = load_data('sim2')
 #    print("sim",dfsim.y)
-    dfreal = load_data('real')
+    dfreal = load_data('real2')
 #    print("real",dfreal.y)
 #    data = pd.concat([dfsim, dfreal], keys=['dfsim', 'dfreal'], names=['Sim', 'Real'], ignore_index = True, axis=1)
 #    data = pd.concat([dfsim, dfreal], axis=1)
@@ -79,14 +79,14 @@ realsource_static = ColumnDataSource(dfreal)
 
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
-# corr = figure(plot_width=350, plot_height=350, tools='pan,wheel_zoom,box_select,reset')
-# corr.circle('Sim X', 'Real X', size=2, source=source, selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
+#corr = figure(plot_width=350, plot_height=350, tools='pan,wheel_zoom,box_select,reset')
+#corr.circle('Sim X', 'Real X', size=2, source=simsource, selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
 
-ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='datetime', active_drag="xbox_select")
+ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts1.line('x', 'y', source=simsource_static)
 ts1.circle('x', 'y', size=1, source=simsource, color=None, selection_color="orange")
 
-ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='datetime', active_drag="xbox_select")
+ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts2.x_range = ts1.x_range
 ts2.line('x', 'y', source=realsource_static)
 ts2.circle('x', 'y', size=1, source=realsource, color=None, selection_color="orange")
@@ -147,7 +147,7 @@ simsource.selected.on_change('indices', selection_change)
 # set up layout
 widgets = column(sim, real)
 # widgets = column(stats, sim, real)
-# main_row = row(corr, widgets)
+#main_row = row(corr, widgets)
 main_row = row(widgets)
 series = column(ts1, ts2)
 layout = column(main_row, series)
