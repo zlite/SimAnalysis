@@ -59,8 +59,8 @@ def get_data():
 #    data = pd.concat([dfsim, dfreal], keys=['dfsim', 'dfreal'], names=['Sim', 'Real'], ignore_index = True, axis=1)
 #    data = pd.concat([dfsim, dfreal], axis=1)
 #    data = data.dropna()   # remove missing values
-    dfsim = pd.concat([dfsim.x,dfsim.y], axis=1)
-    dfreal = pd.concat([dfreal.x,dfreal.y], axis=1)
+    dfsim = pd.concat([dfsim.simx,dfsim.simy], axis=1)
+    dfreal = pd.concat([dfreal.realx,dfreal.realy], axis=1)
     return dfsim,dfreal
 
 # set up widgets
@@ -83,13 +83,13 @@ tools = 'pan,wheel_zoom,xbox_select,reset'
 #corr.circle('Sim X', 'Real X', size=2, source=simsource, selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
-ts1.line('x', 'y', source=simsource_static)
-ts1.circle('x', 'y', size=1, source=simsource, color=None, selection_color="orange")
+ts1.line('simx', 'simy', source=simsource_static)
+ts1.circle('simx', 'simy', size=1, source=simsource, color=None, selection_color="orange")
 
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts2.x_range = ts1.x_range
-ts2.line('x', 'y', source=realsource_static)
-ts2.circle('x', 'y', size=1, source=realsource, color=None, selection_color="orange")
+ts2.line('realx', 'realy', source=realsource_static)
+ts2.circle('realx', 'realy', size=1, source=realsource, color=None, selection_color="orange")
 
 # set up callbacks
 
@@ -106,6 +106,8 @@ def update(selected=None):
     dfsim, dfreal = get_data()
     print("sim", sim)
     print("real",real)
+    data = pd.concat([dfsim, dfreal], axis=1)
+    print(data)
     simsource = dfsim
     simsource_static = dfsim
     realsource = dfreal
