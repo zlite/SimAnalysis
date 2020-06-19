@@ -25,6 +25,7 @@ from bokeh.io import output_file, show
 from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
+import time
 
 from bokeh.models import Div
 
@@ -66,23 +67,14 @@ def get_data(simname,realname):
 
 # set up widgets
 
-# stats = PreText(text='This is some initial text', width=500)
-sim = Select(value='XY', options=nix('VxVy', DEFAULT_FIELDS))
-real = Select(value='VxVy', options=nix('XY', DEFAULT_FIELDS))
+stats = PreText(text='Thiel Coefficient', width=500)
+datatype = Select(value='XY', options=nix('VxVy', DEFAULT_FIELDS))
 
 # set up plots
 
 source = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
 source_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-##simsource = ColumnDataSource(dfsim)
-##simsource_static = ColumnDataSource(dfsim)
-##realsource = ColumnDataSource(dfreal)
-##realsource_static = ColumnDataSource(dfreal)
-
 tools = 'pan,wheel_zoom,xbox_select,reset'
-
-#corr = figure(plot_width=350, plot_height=350, tools='pan,wheel_zoom,box_select,reset')
-#corr.circle('Sim X', 'Real X', size=2, source=simsource, selection_color="orange", alpha=0.6, nonselection_alpha=0.1, selection_alpha=0.4)
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts1.line('simx', 'simy', source=source_static)
@@ -99,10 +91,6 @@ def sim_change(attrname, old, new):
     real.options = nix(new, DEFAULT_FIELDS)
     update()
 
-def real_change(attrname, old, new):
-    sim.options = nix(new, DEFAULT_FIELDS)
-    update()
-
 def update(selected=None):
     tempdata = get_data(simname,realname)
     data = tempdata[['simx', 'simy','realx','realy']]
@@ -110,11 +98,10 @@ def update(selected=None):
     source_static.data = data
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
-##def update_stats(data, sim, real):
-##    stats.text = str(data[[df1.y, df2.y, 'Sim', 'Real']].describe())
+def update_stats(data):
+    stats.text = str(data.describe())
 
-sim.on_change('value', sim_change)
-real.on_change('value', real_change)
+datatype.on_change('value', sim_change)
 
 def selection_change(attrname, old, new):
 #    sim, real = sim.value, real.value
@@ -122,7 +109,7 @@ def selection_change(attrname, old, new):
     selected = source.selected.indices
     if selected:
         data = data.iloc[selected, :]
-#    update_stats(data, sim, real)
+    update_stats(data)
     
 source.selected.on_change('indices', selection_change)
     
@@ -139,9 +126,7 @@ real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",w
 source.selected.on_change('indices', selection_change)
 
 # set up layout
-widgets = column(sim, real)
-# widgets = column(stats, sim, real)
-#main_row = row(corr, widgets)
+widgets = column(datatype,stats)
 main_row = row(widgets)
 series = column(ts1, ts2)
 layout = column(main_row, series)
@@ -154,7 +139,6 @@ curdoc().add_root(sim_upload_text)
 #curdoc().add_root(file_input)
 curdoc().add_root(real_upload_text)
 #curdoc().add_root(file_input2)
-#curdoc().add_root(checkbox_group)
 curdoc().add_root(layout)
 curdoc().title = "Flight data"
 
