@@ -99,15 +99,17 @@ def update(selected=None):
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def update_stats(data):
-    real = np.array(data.simy)
-    sim = np.array(-data.realy)
+    real = np.array(data.realy)
+    sim = np.array(data.simy)
+    sign = -1  # if the sign of the real data has to be reversed. This is just for debugging 
     sum1 = 0
     sum2 = 0
     sum3 = 0
-    for n in np.nditer(real):
-        sum1 = sum1 + (real[int(n-1)]-sim[int(n-1)])**2
-        sum2 = sum2 + real[int(n-1)]**2
-        sum3 = sum3 + sim[int(n-1)]**2
+#    for n in np.nditer(data):
+    for n in range(len(data)):
+        sum1 = sum1 + (sign*real[int(n)]-sim[int(n)])**2
+        sum2 = sum2 + real[int(n)]**2
+        sum3 = sum3 + sim[int(n)]**2
     sum1 = 1/len(real) * sum1
     sum2 = 1/len(real) * sum2
     sum3 = 1/len(real) * sum3
