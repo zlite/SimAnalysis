@@ -19,6 +19,8 @@ at your command prompt. Then navigate to the URL
 
 '''
 import px4tools
+import numpy as np
+import math
 from functools import lru_cache
 from os.path import dirname, join
 from bokeh.io import output_file, show
@@ -44,8 +46,6 @@ DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 simname = 'sim2'
 realname = 'real2'
 
-def nix(val, lst):
-    return [x for x in lst if x != val]
 
 @lru_cache()
 def load_data(name):
@@ -68,7 +68,7 @@ def get_data(simname,realname):
 # set up widgets
 
 stats = PreText(text='Thiel Coefficient', width=500)
-datatype = Select(value='XY', options=nix('VxVy', DEFAULT_FIELDS))
+datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 # set up plots
 
@@ -99,7 +99,23 @@ def update(selected=None):
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def update_stats(data):
-    stats.text = str(data.describe())
+    real = np.array(data.simy)
+    sim = np.array(-data.realy)
+    sum1 = 0
+    sum2 = 0
+    sum3 = 0
+    for n in np.nditer(real):
+        sum1 = sum1 + (real[int(n-1)]-sim[int(n-1)])**2
+        sum2 = sum2 + real[int(n-1)]**2
+        sum3 = sum3 + sim[int(n-1)]**2
+    sum1 = 1/len(real) * sum1
+    sum2 = 1/len(real) * sum2
+    sum3 = 1/len(real) * sum3
+    sum1 = math.sqrt(sum1)
+    sum2 = math.sqrt(sum2)
+    sum3 = math.sqrt(sum3)
+    TIC = sum1/(sum2 + sum3)
+    stats.text = 'Thiel coefficient = ' + str(round(TIC,3))
 
 datatype.on_change('value', sim_change)
 
