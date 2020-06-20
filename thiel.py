@@ -49,8 +49,9 @@ realname = 'real2'
 
 @lru_cache()
 def load_data(name):
-    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
-    data = pd.read_csv(fname)
+#    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
+#    data = pd.read_csv(fname)
+    data = pd.read_csv(name)
     return pd.DataFrame(data)
 
 @lru_cache()
@@ -131,10 +132,10 @@ def selection_change(attrname, old, new):
     
 source.selected.on_change('indices', selection_change)
     
-#file_input = FileInput(accept=".ulg, .csv")
-#file_input.on_change('value', get_data())
-#file_input2 = FileInput(accept=".ulg, .csv")
-#file_input2.on_change('value', get_data())
+file_input = FileInput(accept=".ulg, .csv")
+file_input.on_change('value', load_data(file_input))
+file_input2 = FileInput(accept=".ulg, .csv")
+file_input2.on_change('value', load_data(file_input))
 
 intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
 sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
@@ -154,9 +155,9 @@ update()
 
 curdoc().add_root(intro_text)
 curdoc().add_root(sim_upload_text)
-#curdoc().add_root(file_input)
+curdoc().add_root(file_input)
 curdoc().add_root(real_upload_text)
-#curdoc().add_root(file_input2)
+curdoc().add_root(file_input2)
 curdoc().add_root(layout)
 curdoc().title = "Flight data"
 
