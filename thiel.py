@@ -21,6 +21,7 @@ at your command prompt. Then navigate to the URL
 import px4tools
 import numpy as np
 import math
+import io
 from functools import lru_cache
 from os.path import dirname, join
 from bokeh.io import output_file, show
@@ -48,15 +49,22 @@ realname = 'real2'
 
 
 @lru_cache()
-def load_data(name):
+def load_data_sim(simname):
 #    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
 #    data = pd.read_csv(fname)
-    data = pd.read_csv(name)
-    return pd.DataFrame(data)
+    data = pd.read_csv(simname)
+    dfsim = pd.DataFrame(data)
+
+def load_data_real(realname):
+#    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
+#    data = pd.read_csv(fname)
+    data = pd.read_csv(realname)
+    dfreal = pd.DataFrame(data)
+
 
 @lru_cache()
 def get_data(simname,realname):
-    dfsim = load_data(simname)
+    dfsim = load_data_sim(simname)
     dfreal = load_data(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
     data = data.dropna()   # remove missing values
@@ -99,6 +107,18 @@ def update(selected=None):
     source_static.data = data
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
+def upload_new_data_sim(attr, old, new):
+    global simname
+    decoded = b64decode(new)
+    simname = io.BytesIO(decoded)
+    update()
+
+def upload_new_data_real(attr, old, new):
+    global realname
+    decoded = b64decode(new)
+    realname = io.BytesIO(decoded)
+    update()
+
 def update_stats(data):
     real = np.array(data.realy)
     sim = np.array(data.simy)
@@ -133,9 +153,9 @@ def selection_change(attrname, old, new):
 source.selected.on_change('indices', selection_change)
     
 file_input = FileInput(accept=".ulg, .csv")
-file_input.on_change('value', load_data(file_input))
+file_input.on_change('value', upload_new_data_sim)
 file_input2 = FileInput(accept=".ulg, .csv")
-file_input2.on_change('value', load_data(file_input))
+file_input2.on_change('value', upload_new_data_real)
 
 intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
 sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
