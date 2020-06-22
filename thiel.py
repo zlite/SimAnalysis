@@ -44,8 +44,8 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-simname = 'sim2'
-realname = 'real2'
+simname = 'sim2.csv'
+realname = 'real2.csv'
 
 
 @lru_cache()
@@ -54,18 +54,22 @@ def load_data_sim(simname):
 #    data = pd.read_csv(fname)
     data = pd.read_csv(simname)
     dfsim = pd.DataFrame(data)
+#    print("dfsim =", dfsim)
+    return dfsim
 
 def load_data_real(realname):
 #    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
 #    data = pd.read_csv(fname)
     data = pd.read_csv(realname)
     dfreal = pd.DataFrame(data)
+#    print("dfreal=",dfreal)
+    return dfreal
 
 
 @lru_cache()
 def get_data(simname,realname):
     dfsim = load_data_sim(simname)
-    dfreal = load_data(realname)
+    dfreal = load_data_real(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
     data = data.dropna()   # remove missing values
     data['simy'] = data.simy
