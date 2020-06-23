@@ -163,12 +163,14 @@ def selection_change(attrname, old, new):
 def reverse_sim():
     global sim_polarity
     if (sim_reverse_button.active == 1): sim_polarity = -1
+    elif (sim_reverse_button.active == 0) and (sim_polarity == -1): sim_polarity = -1
     else: sim_polarity = 1
     update()
 
 def reverse_real():
     global real_polarity
     if (real_reverse_button.active == 1): real_polarity = -1
+    elif (real_reverse_button.active == 0) and (real_polarity == -1): real_polarity = -1
     else: real_polarity = 1
     update()
     
