@@ -28,6 +28,9 @@ from bokeh.io import output_file, show
 from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
+from bokeh.models import RadioButtonGroup
+
+
 import time
 
 from bokeh.models import Div
@@ -46,7 +49,8 @@ DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
 simname = 'sim2.csv'
 realname = 'real2.csv'
-
+sim_polarity = 1  # determines if we should reverse the Y data
+real_polarity = 1
 
 @lru_cache()
 def load_data_sim(simname):
@@ -106,6 +110,8 @@ def sim_change(attrname, old, new):
 
 def update(selected=None):
     tempdata = get_data(simname,realname)
+    tempdata[['simy']] = sim_polarity * tempdata[['simy']]  # reverse data if neessary
+    tempdata[['realy']] = real_polarity * tempdata[['realy']]
     data = tempdata[['simx', 'simy','realx','realy']]
     source.data = data
     source_static.data = data
@@ -142,7 +148,7 @@ def update_stats(data):
     sum2 = math.sqrt(sum2)
     sum3 = math.sqrt(sum3)
     TIC = sum1/(sum2 + sum3)
-    stats.text = 'Thiel coefficient = ' + str(round(TIC,3))
+    stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
 
 datatype.on_change('value', sim_change)
 
@@ -153,6 +159,18 @@ def selection_change(attrname, old, new):
     if selected:
         data = data.iloc[selected, :]
     update_stats(data)
+
+def reverse_sim():
+    global sim_polarity
+    if (sim_reverse_button.active == 1): sim_polarity = -1
+    else: sim_polarity = 1
+    update()
+
+def reverse_real():
+    global real_polarity
+    if (real_reverse_button.active == 1): real_polarity = -1
+    else: real_polarity = 1
+    update()
     
 source.selected.on_change('indices', selection_change)
     
@@ -166,12 +184,21 @@ sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height
 real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
 #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
+sim_reverse_button = RadioButtonGroup(
+        labels=["Default", "Reversed"], active=0)
+sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
+real_reverse_button = RadioButtonGroup(
+        labels=["Default", "Reversed"], active=0)
+real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
+
 source.selected.on_change('indices', selection_change)
 
 # set up layout
 widgets = column(datatype,stats)
+sim_button = column(sim_reverse_button)
+real_button = column(real_reverse_button)
 main_row = row(widgets)
-series = column(ts1, ts2)
+series = column(ts1, sim_button, ts2, real_button)
 layout = column(main_row, series)
 
 # initialize
@@ -184,6 +211,3 @@ curdoc().add_root(real_upload_text)
 curdoc().add_root(file_input2)
 curdoc().add_root(layout)
 curdoc().title = "Flight data"
-
-
-
