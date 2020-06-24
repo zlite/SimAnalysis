@@ -1,21 +1,12 @@
-''' Create a simple stocks correlation dashboard.
-
-Choose stocks to compare in the drop down widgets, and make selections
-on the plots to update the summary and histograms accordingly.
-
-.. note::
-    Running this example requires downloading sample data. See
-    the included `README`_ for more information.
+''' Create a simple real/sim data correlation dashboard.
 
 Use the ``bokeh serve`` command to run the example by executing:
 
-    bokeh serve stocks
+    bokeh serve thiel.py
 
 at your command prompt. Then navigate to the URL
 
-    http://localhost:5006/stocks
-
-.. _README: https://github.com/bokeh/bokeh/blob/master/examples/app/stocks/README.md
+    http://localhost:5006
 
 '''
 import px4tools
@@ -165,6 +156,7 @@ def simselection_change(attrname, old, new):
 def realselection_change(attrname, old, new):
     data = copy.deepcopy(tempdata)
     selected = realsource.selected.indices
+    print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end)
     if selected:
         data = data.iloc[selected, :]
     update_stats(data)
@@ -197,9 +189,11 @@ sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
 real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
-simsource.selected.on_change('indices', simselection_change)
-realsource.selected.on_change('indices', realselection_change)
 
+simsource_static.selected.on_change('indices', simselection_change)
+realsource_static.selected.on_change('indices', realselection_change)
+ts1.x_range.on_change('start', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
 
 # set up layout
 widgets = column(datatype,stats)
