@@ -32,7 +32,7 @@ from bokeh.models import RadioButtonGroup
 
 
 import time
-
+import copy
 from bokeh.models import Div
 
 
@@ -72,6 +72,7 @@ def load_data_real(realname):
 
 @lru_cache()
 def get_data(simname,realname):
+    global original_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
@@ -80,6 +81,7 @@ def get_data(simname,realname):
     data['simx'] = data.simx
     data['realy'] = data.realy
     data['realx'] = data.realx
+    original_data = copy.deepcopy(data)
     return data
 
 # set up widgets
@@ -109,9 +111,10 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    tempdata = get_data(simname,realname)
-    tempdata[['simy']] = sim_polarity * tempdata[['simy']]  # reverse data if neessary
-    tempdata[['realy']] = real_polarity * tempdata[['realy']]
+    global tempdata
+    tempdata = get_data(simname, realname)
+    tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
+    tempdata[['realy']] = real_polarity * original_data[['realy']]
     data = tempdata[['simx', 'simy','realx','realy']]
     source.data = data
     source_static.data = data
@@ -131,14 +134,15 @@ def upload_new_data_real(attr, old, new):
 
 def update_stats(data):
     real = np.array(data.realy)
+#    print("real", real)
     sim = np.array(data.simy)
-    sign = -1  # if the sign of the real data has to be reversed. This is just for debugging 
+#    print("sim", sim)
     sum1 = 0
     sum2 = 0
     sum3 = 0
 #    for n in np.nditer(data):
     for n in range(len(data)):
-        sum1 = sum1 + (sign*real[int(n)]-sim[int(n)])**2
+        sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
         sum2 = sum2 + real[int(n)]**2
         sum3 = sum3 + sim[int(n)]**2
     sum1 = 1/len(real) * sum1
@@ -153,8 +157,7 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def selection_change(attrname, old, new):
-#    sim, real = sim.value, real.value
-    data = get_data(simname,realname)
+    data = copy.deepcopy(tempdata)
     selected = source.selected.indices
     if selected:
         data = data.iloc[selected, :]
@@ -163,14 +166,12 @@ def selection_change(attrname, old, new):
 def reverse_sim():
     global sim_polarity
     if (sim_reverse_button.active == 1): sim_polarity = -1
-    elif (sim_reverse_button.active == 0) and (sim_polarity == -1): sim_polarity = -1
     else: sim_polarity = 1
     update()
 
 def reverse_real():
     global real_polarity
     if (real_reverse_button.active == 1): real_polarity = -1
-    elif (real_reverse_button.active == 0) and (real_polarity == -1): real_polarity = -1
     else: real_polarity = 1
     update()
     
@@ -181,16 +182,16 @@ file_input.on_change('value', upload_new_data_sim)
 file_input2 = FileInput(accept=".ulg, .csv")
 file_input2.on_change('value', upload_new_data_real)
 
-intro_text = Div(text="""<H2>Sim/Real Theil Coefficient Calculator</H2>""",width=500, height=100, align="center")
+intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
 sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
 real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
 #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
 sim_reverse_button = RadioButtonGroup(
-        labels=["Default", "Reversed"], active=0)
+        labels=["Sim Default", "Reversed"], active=0)
 sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
 real_reverse_button = RadioButtonGroup(
-        labels=["Default", "Reversed"], active=0)
+        labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
 source.selected.on_change('indices', selection_change)
