@@ -54,19 +54,13 @@ real_polarity = 1
 
 @lru_cache()
 def load_data_sim(simname):
-#    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
-#    data = pd.read_csv(fname)
     data = pd.read_csv(simname)
     dfsim = pd.DataFrame(data)
-#    print("dfsim =", dfsim)
     return dfsim
 
 def load_data_real(realname):
-#    fname = join(DATA_DIR, '%s.csv' % name)  # fix this later
-#    data = pd.read_csv(fname)
     data = pd.read_csv(realname)
     dfreal = pd.DataFrame(data)
-#    print("dfreal=",dfreal)
     return dfreal
 
 
@@ -91,18 +85,21 @@ datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 # set up plots
 
-source = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-source_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
+realsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
+realsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
+simsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
+simsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
-ts1.line('simx', 'simy', source=source_static)
-ts1.circle('simx', 'simy', size=1, source=source, color=None, selection_color="orange")
+ts1.line('simx', 'simy', source=simsource, line_width=2)
+ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
 
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
-ts2.x_range = ts1.x_range
-ts2.line('realx', 'realy', source=source_static)
-ts2.circle('realx', 'realy', size=1, source=source, color=None, selection_color="orange")
+# ts2.x_range = ts1.x_range
+#ts2.line('realx', 'realy', source=source_static)
+ts2.line('realx', 'realy', source=realsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color=None, selection_color="orange")
 
 # set up callbacks
 
@@ -116,8 +113,10 @@ def update(selected=None):
     tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
     tempdata[['realy']] = real_polarity * original_data[['realy']]
     data = tempdata[['simx', 'simy','realx','realy']]
-    source.data = data
-    source_static.data = data
+    realsource.data = data
+    realsource_static.data = data
+    simsource.data = data
+    simsource_static.data = data
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def upload_new_data_sim(attr, old, new):
@@ -156,9 +155,16 @@ def update_stats(data):
 
 datatype.on_change('value', sim_change)
 
-def selection_change(attrname, old, new):
+def simselection_change(attrname, old, new):
     data = copy.deepcopy(tempdata)
-    selected = source.selected.indices
+    selected = simsource.selected.indices
+    if selected:
+        data = data.iloc[selected, :]
+    update_stats(data)
+
+def realselection_change(attrname, old, new):
+    data = copy.deepcopy(tempdata)
+    selected = realsource.selected.indices
     if selected:
         data = data.iloc[selected, :]
     update_stats(data)
@@ -174,8 +180,6 @@ def reverse_real():
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
     update()
-    
-source.selected.on_change('indices', selection_change)
     
 file_input = FileInput(accept=".ulg, .csv")
 file_input.on_change('value', upload_new_data_sim)
@@ -193,8 +197,9 @@ sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
 real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
+simsource.selected.on_change('indices', simselection_change)
+realsource.selected.on_change('indices', realselection_change)
 
-source.selected.on_change('indices', selection_change)
 
 # set up layout
 widgets = column(datatype,stats)
