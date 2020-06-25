@@ -99,7 +99,7 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global tempdata
+    global tempdata, select_data
     tempdata = get_data(simname, realname)
     tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
     tempdata[['realy']] = real_polarity * original_data[['realy']]
@@ -108,6 +108,7 @@ def update(selected=None):
     realsource_static.data = data
     simsource.data = data
     simsource_static.data = data
+    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def upload_new_data_sim(attr, old, new):
@@ -147,18 +148,19 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def simselection_change(attrname, old, new):
-    data = copy.deepcopy(tempdata)
-    selected = simsource.selected.indices
+    data = select_data
+    selected = simsource_static.selected.indices
     if selected:
-        data = data.iloc[selected, :]
+        data = select_data.iloc[selected, :]
     update_stats(data)
 
 def realselection_change(attrname, old, new):
-    data = copy.deepcopy(tempdata)
-    selected = realsource.selected.indices
-    print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end)
+    data = select_data
+#    data.simx = data.simx+100
+#    print ("Data simx, simx +100", data.simx, data.simx+100)
+    selected = realsource_static.selected.indices
     if selected:
-        data = data.iloc[selected, :]
+        data = select_data.iloc[selected, :]
     update_stats(data)
 
 def reverse_sim():
@@ -192,8 +194,9 @@ real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
 simsource_static.selected.on_change('indices', simselection_change)
 realsource_static.selected.on_change('indices', realselection_change)
-ts1.x_range.on_change('start', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
-ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+# The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
+#ts1.x_range.on_change('start', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+#ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
 
 # set up layout
 widgets = column(datatype,stats)
