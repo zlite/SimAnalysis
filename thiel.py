@@ -42,6 +42,9 @@ simname = 'sim2.csv'
 realname = 'real2.csv'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
+simx_offset = 0
+realx_offset = 0
+
 
 @lru_cache()
 def load_data_sim(simname):
@@ -89,8 +92,8 @@ ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selectio
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 # ts2.x_range = ts1.x_range
 #ts2.line('realx', 'realy', source=source_static)
-ts2.line('realx', 'realy', source=realsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=realsource_static, color=None, selection_color="orange")
+ts2.line('realx', 'realy', source=simsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=simsource_static, color=None, selection_color="orange")
 
 # set up callbacks
 
@@ -101,8 +104,12 @@ def sim_change(attrname, old, new):
 def update(selected=None):
     global tempdata, select_data
     tempdata = get_data(simname, realname)
+    print("Sim offset", simx_offset)
+    print("Real offset", realx_offset)
     tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
     tempdata[['realy']] = real_polarity * original_data[['realy']]
+    tempdata[['simx']] = simx_offset + original_data[['simx']]  # If the graph has been panned
+    tempdata[['realx']] = realx_offset + original_data[['realx']]
     data = tempdata[['simx', 'simy','realx','realy']]
     realsource.data = data
     realsource_static.data = data
@@ -125,9 +132,7 @@ def upload_new_data_real(attr, old, new):
 
 def update_stats(data):
     real = np.array(data.realy)
-#    print("real", real)
     sim = np.array(data.simy)
-#    print("sim", sim)
     sum1 = 0
     sum2 = 0
     sum3 = 0
@@ -147,21 +152,24 @@ def update_stats(data):
 
 datatype.on_change('value', sim_change)
 
-def simselection_change(attrname, old, new):
+def selection_change(attrname, old, new):
     data = select_data
+    update()
     selected = simsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
 
-def realselection_change(attrname, old, new):
-    data = select_data
-#    data.simx = data.simx+100
-#    print ("Data simx, simx +100", data.simx, data.simx+100)
-    selected = realsource_static.selected.indices
-    if selected:
-        data = select_data.iloc[selected, :]
-    update_stats(data)
+##def realselection_change(attrname, old, new):
+##    data = select_data
+###    data.simx = data.simx+100
+###    print ("Data simx, simx +100", data.simx, data.simx+100)
+###    realsource_static = simsource_static
+##    print("Realsource_static x =", realsource_static['realx'])
+##    selected = realsource_static.selected.indices
+##    if selected:
+##        data = select_data.iloc[selected, :]
+##    update_stats(data)
 
 def reverse_sim():
     global sim_polarity
@@ -174,6 +182,15 @@ def reverse_real():
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
     update()
+
+def change_sim_scale(shift):
+    global simx_offset
+    simx_offset = shift
+
+def change_real_scale(shift):
+    global realx_offset
+    realx_offset = shift
+ 
     
 file_input = FileInput(accept=".ulg, .csv")
 file_input.on_change('value', upload_new_data_sim)
@@ -192,11 +209,16 @@ real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-simsource_static.selected.on_change('indices', simselection_change)
-realsource_static.selected.on_change('indices', realselection_change)
+simsource_static.selected.on_change('indices', selection_change)
+##realsource_static.selected.on_change('indices', realselection_change)
 # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
-#ts1.x_range.on_change('start', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+#ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
 #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+
+ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
+ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
+
+
 
 # set up layout
 widgets = column(datatype,stats)
