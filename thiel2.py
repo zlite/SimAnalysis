@@ -79,10 +79,10 @@ datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 # set up plots
 
-realsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-realsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-simsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-simsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
+realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
+simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
+simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
@@ -92,8 +92,8 @@ ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selectio
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 # ts2.x_range = ts1.x_range
 #ts2.line('realx', 'realy', source=source_static)
-ts2.line('realx', 'realy', source=simsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=simsource_static, color=None, selection_color="orange")
+ts2.line('realx', 'realy', source=realsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color=None, selection_color="orange")
 
 # set up callbacks
 
@@ -150,26 +150,21 @@ def update_stats(data):
 
 datatype.on_change('value', sim_change)
 
-def selection_change(attrname, old, new):
-    print("new:", new)
+def simselection_change(attrname, old, new):
     data = select_data
     update()
     selected = simsource_static.selected.indices
-    print("Selected: ", selected)
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
 
-##def realselection_change(attrname, old, new):
-##    data = select_data
-###    data.simx = data.simx+100
-###    print ("Data simx, simx +100", data.simx, data.simx+100)
-###    realsource_static = simsource_static
-##    print("Realsource_static x =", realsource_static['realx'])
-##    selected = realsource_static.selected.indices
-##    if selected:
-##        data = select_data.iloc[selected, :]
-##    update_stats(data)
+def realselection_change(attrname, old, new):
+    data = select_data
+    update()
+    selected = realsource_static.selected.indices
+    if selected:
+        data = select_data.iloc[selected, :]
+    update_stats(data)
 
 def reverse_sim():
     global sim_polarity
@@ -209,8 +204,8 @@ real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-simsource_static.selected.on_change('indices', selection_change)
-#realsource_static.selected.on_change('indices', realselection_change)
+simsource_static.selected.on_change('indices', simselection_change)
+realsource_static.selected.on_change('indices', realselection_change)
 # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
 #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
 #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
