@@ -46,14 +46,15 @@ simx_offset = 0
 realx_offset = 0
 
 
-@lru_cache()
 def load_data_sim(simname):
-    data = pd.read_csv(simname)
+    fname = join(DATA_DIR, simname)
+    data = pd.read_csv(fname)
     dfsim = pd.DataFrame(data)
     return dfsim
 
 def load_data_real(realname):
-    data = pd.read_csv(realname)
+    fname = join(DATA_DIR, realname)
+    data = pd.read_csv(fname)
     dfreal = pd.DataFrame(data)
     return dfreal
 
