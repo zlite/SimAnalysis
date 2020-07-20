@@ -21,7 +21,6 @@ from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
 from bokeh.models import RadioButtonGroup
 
-
 import time
 import copy
 from bokeh.models import Div
@@ -46,12 +45,14 @@ simx_offset = 0
 realx_offset = 0
 
 
+@lru_cache()
 def load_data_sim(simname):
     fname = join(DATA_DIR, simname)
     data = pd.read_csv(fname)
     dfsim = pd.DataFrame(data)
     return dfsim
 
+@lru_cache()
 def load_data_real(realname):
     fname = join(DATA_DIR, realname)
     data = pd.read_csv(fname)
@@ -84,7 +85,10 @@ realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
 realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
 simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
+
+
 tools = 'pan,wheel_zoom,xbox_select,reset'
+
 
 ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts1.line('simx', 'simy', source=simsource, line_width=2)
@@ -107,6 +111,11 @@ def update(selected=None):
     tempdata = get_data(simname, realname)
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
+    if (len(simsource.data['simy']) != 0):
+        print(simsource.data['simy'][1])
+        simsource.data['simy'][1] = 2
+        print(simsource.data['simy'][1])
+ #   print(simsource_static.data)
     tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
     tempdata[['realy']] = real_polarity * original_data[['realy']]
     data = tempdata[['simx', 'simy','realx','realy']]
@@ -152,6 +161,7 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def simselection_change(attrname, old, new):
+    a = 1
     data = select_data
     update()
     selected = simsource_static.selected.indices
