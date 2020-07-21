@@ -163,7 +163,7 @@ datatype.on_change('value', sim_change)
 def simselection_change(attrname, old, new):
     a = 1
     data = select_data
-    update()
+ #   update()
     selected = simsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
@@ -171,7 +171,7 @@ def simselection_change(attrname, old, new):
 
 def realselection_change(attrname, old, new):
     data = select_data
-    update()
+ #   update()
     selected = realsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
