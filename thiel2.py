@@ -111,10 +111,7 @@ def update(selected=None):
     tempdata = get_data(simname, realname)
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
-    if (len(simsource.data['simy']) != 0):
-        print(simsource.data['simy'][1])
-        simsource.data['simy'][1] = 2
-        print(simsource.data['simy'][1])
+
  #   print(simsource_static.data)
     tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
     tempdata[['realy']] = real_polarity * original_data[['realy']]
@@ -168,6 +165,10 @@ def simselection_change(attrname, old, new):
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
+    if (len(simsource.data['simy']) != 0):
+        print(simsource.data['simy'][1])
+        simsource.data['simy'][1] = 2
+        print(simsource.data['simy'][1])
 
 def realselection_change(attrname, old, new):
     data = select_data
@@ -176,6 +177,10 @@ def realselection_change(attrname, old, new):
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
+    if (len(simsource.data['realy']) != 0):
+        print(simsource.data['realy'][1])
+        simsource.data['realy'][1] = 3
+        print(simsource.data['realy'][1])
 
 def reverse_sim():
     global sim_polarity
