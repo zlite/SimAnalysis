@@ -160,7 +160,6 @@ datatype.on_change('value', sim_change)
 def simselection_change(attrname, old, new):
     a = 1
     data = select_data
- #   update()
     selected = simsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
@@ -172,15 +171,14 @@ def simselection_change(attrname, old, new):
 
 def realselection_change(attrname, old, new):
     data = select_data
- #   update()
     selected = realsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
-    if (len(simsource.data['realy']) != 0):
-        print(simsource.data['realy'][1])
-        simsource.data['realy'][1] = 3
-        print(simsource.data['realy'][1])
+    if (len(realsource_static.data['realy']) != 0):
+        for x in range(len(realsource_static.data['realy'])):
+            realsource_static.data['realy'][x] = realsource_static.data['realy'][x] + 100
+            print( realsource_static.data['realy'][x])
 
 def reverse_sim():
     global sim_polarity
