@@ -43,6 +43,8 @@ sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
 realx_offset = 0
+read_file = True
+reverse = False
 
 
 @lru_cache()
@@ -107,14 +109,16 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global tempdata, select_data
-    tempdata = get_data(simname, realname)
+    global tempdata, select_data, read_file, reverse
+    if (read_file):
+       tempdata = get_data(simname, realname)
+       read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
-
- #   print(simsource_static.data)
-    tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
-    tempdata[['realy']] = real_polarity * original_data[['realy']]
+    if (reverse):
+        tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        tempdata[['realy']] = real_polarity * original_data[['realy']]
+        reverse = False
     data = tempdata[['simx', 'simy','realx','realy']]
     realsource.data = data
     realsource_static.data = data
@@ -168,30 +172,33 @@ def simselection_change(attrname, old, new):
         print(simsource.data['simy'][1])
         simsource.data['simy'][1] = 2
         print(simsource.data['simy'][1])
-
+    update()
 def realselection_change(attrname, old, new):
-    global realsource_static, realsource
+    global tempdata
     data = select_data
     selected = realsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
-    if (len(realsource_static.data['realy']) != 0):
-        for x in range(len(realsource_static.data['realy'])):
-            realsource_static.data['realy'][x] = realsource_static.data['realy'][x] + 100
-            realsource.data['realy'][x] = realsource.data['realy'][x] + 100
-            print( realsource_static.data['realy'][x])
+    if (len(tempdata['realy']) != 0):
+        for x in range(len(tempdata['realy'])):
+            tempdata['realy'][x] = tempdata['realy'][x] + 100
+            tempdata['realy'][x] = tempdata['realy'][x] + 100
+            print(tempdata['realy'][x])
+    update()
 
 def reverse_sim():
-    global sim_polarity
+    global sim_polarity, reverse
     if (sim_reverse_button.active == 1): sim_polarity = -1
     else: sim_polarity = 1
+    reverse = True
     update()
 
 def reverse_real():
-    global real_polarity
+    global real_polarity, reverse
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
+    reverse = True
     update()
 
 def change_sim_scale(shift):
