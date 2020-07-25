@@ -170,6 +170,7 @@ def simselection_change(attrname, old, new):
         print(simsource.data['simy'][1])
 
 def realselection_change(attrname, old, new):
+    global realsource_static, realsource
     data = select_data
     selected = realsource_static.selected.indices
     if selected:
@@ -178,6 +179,7 @@ def realselection_change(attrname, old, new):
     if (len(realsource_static.data['realy']) != 0):
         for x in range(len(realsource_static.data['realy'])):
             realsource_static.data['realy'][x] = realsource_static.data['realy'][x] + 100
+            realsource.data['realy'][x] = realsource.data['realy'][x] + 100
             print( realsource_static.data['realy'][x])
 
 def reverse_sim():
