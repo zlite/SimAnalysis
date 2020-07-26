@@ -92,11 +92,11 @@ simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
 tools = 'pan,wheel_zoom,xbox_select,reset'
 
 
-ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
+ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), active_drag="xbox_select")
 ts1.line('simx', 'simy', source=simsource, line_width=2)
 ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
 
-ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
+ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), active_drag="xbox_select")
 # ts2.x_range = ts1.x_range
 #ts2.line('realx', 'realy', source=source_static)
 ts2.line('realx', 'realy', source=realsource, line_width=2)
@@ -181,10 +181,9 @@ def realselection_change(attrname, old, new):
         data = select_data.iloc[selected, :]
     update_stats(data)
     if (len(tempdata['realy']) != 0):
-        for x in range(len(tempdata['realy'])):
-            tempdata['realy'][x] = tempdata['realy'][x] + 100
-            tempdata['realy'][x] = tempdata['realy'][x] + 100
-            print(tempdata['realy'][x])
+        for x in range(len(tempdata['realx'])):
+            tempdata['realx'][x] = tempdata['realx'][x] + 100
+            print(tempdata['realx'][x])
     update()
 
 def reverse_sim():
