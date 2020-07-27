@@ -45,7 +45,8 @@ simx_offset = 0
 realx_offset = 0
 read_file = True
 reverse = False
-
+new_data_s = True
+new_data_r = True
 
 @lru_cache()
 def load_data_sim(simname):
@@ -89,14 +90,14 @@ simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
 simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
 
 
-tools = 'pan,wheel_zoom,xbox_select,reset'
+tools = 'xpan,wheel_zoom,xbox_select,reset'
 
 
-ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), active_drag="xbox_select")
+ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), y_range = None, active_drag="xbox_select")
 ts1.line('simx', 'simy', source=simsource, line_width=2)
 ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
 
-ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), active_drag="xbox_select")
+ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), y_range = None, active_drag="xbox_select")
 # ts2.x_range = ts1.x_range
 #ts2.line('realx', 'realy', source=source_static)
 ts2.line('realx', 'realy', source=realsource, line_width=2)
@@ -109,7 +110,7 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global tempdata, select_data, read_file, reverse
+    global tempdata, select_data, read_file, reverse, new_data_r, new_data_s
     if (read_file):
        tempdata = get_data(simname, realname)
        read_file = False
@@ -121,9 +122,13 @@ def update(selected=None):
         reverse = False
     data = tempdata[['simx', 'simy','realx','realy']]
     realsource.data = data
-    realsource_static.data = data
+    if new_data_r:
+        realsource_static.data = data
+        new_data_r = False
     simsource.data = data
-    simsource_static.data = data
+    if new_data_s:
+        simsource_static.data = data
+        new_data_s = False
     select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
@@ -162,42 +167,40 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def simselection_change(attrname, old, new):
-    a = 1
     data = select_data
     selected = simsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
-    if (len(simsource.data['simy']) != 0):
-        print(simsource.data['simy'][1])
-        simsource.data['simy'][1] = 2
-        print(simsource.data['simy'][1])
     update()
 def realselection_change(attrname, old, new):
-    global tempdata
+    global tempdata, realsource_static
     data = select_data
     selected = realsource_static.selected.indices
     if selected:
         data = select_data.iloc[selected, :]
     update_stats(data)
     if (len(tempdata['realy']) != 0):
-        for x in range(len(tempdata['realx'])):
-            tempdata['realx'][x] = tempdata['realx'][x] + 100
-            print(tempdata['realx'][x])
+        for x in range(len(realsource_static.data['realx'])):
+            realsource_static.data['realx'][x] = realsource_static.data['realx'][x] - realx_offset
+#            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
+#            print(tempdata['realx'][x])
     update()
 
 def reverse_sim():
-    global sim_polarity, reverse
+    global sim_polarity, reverse, new_data_s
     if (sim_reverse_button.active == 1): sim_polarity = -1
     else: sim_polarity = 1
     reverse = True
+    new_data_s = True
     update()
 
 def reverse_real():
-    global real_polarity, reverse
+    global real_polarity, reverse, new_data_r
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
     reverse = True
+    new_data_r = True
     update()
 
 def change_sim_scale(shift):
