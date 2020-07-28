@@ -108,19 +108,19 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, source, source_static, original_data
+    global read_file, reverse, new_data, source, source_static, original_data, data
     if (read_file):
        original_data = get_data(simname, realname)
+       data = copy.deepcopy(original_data)
        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if (reverse):
-        source[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        source[['realy']] = real_polarity * original_data[['realy']]
-        source_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        source_static[['realy']] = real_polarity * original_data[['realy']]
+        data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        data[['realy']] = real_polarity * original_data[['realy']]
+        source.data = data
+        source_static.data = data
         reverse = False
-        new_data = True
     if new_data:
         source.data = original_data[['simx', 'simy','realx','realy']]
         source_static.data = original_data[['simx', 'simy','realx','realy']]
