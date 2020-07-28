@@ -20,6 +20,7 @@ from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
 from bokeh.models import RadioButtonGroup
+from bokeh.models import Range1d
 
 import time
 import copy
@@ -95,7 +96,7 @@ ts1.line('simx', 'simy', source=source, line_width=2)
 ts1.circle('simx', 'simy', size=1, source=source_static, color=None, selection_color="orange")
 
 ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
-# to adjust ranges, add something like this: x_range=(0, 1000), y_range = None,
+# to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
 # ts2.line('realx', 'realy', source=source_static)
 ts2.line('realx', 'realy', source=source, line_width=2)
@@ -120,6 +121,14 @@ def update(selected=None):
         data[['realy']] = real_polarity * original_data[['realy']]
         source.data = data
         source_static.data = data
+        simmax = round(max(data[['simy']].values)[0])
+        simmin = round(min(data[['simy']].values)[0])
+        realmax = round(max(data[['realy']].values)[0])
+        realmin = round(min(data[['realy']].values)[0])
+        ts1.y_range.start = simmin
+        ts1.y_range.end = simmax
+        ts2.y_range.start = realmin
+        ts2.y_range.end = realmax
         reverse = False
     if new_data:
         source.data = data[['simx', 'simy','realx','realy']]
