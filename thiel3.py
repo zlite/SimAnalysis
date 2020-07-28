@@ -108,7 +108,7 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, source, source_static, original_data, data
+    global read_file, reverse, new_data, source, source_static, original_data, data, new_data
     if (read_file):
        original_data = get_data(simname, realname)
        data = copy.deepcopy(original_data)
@@ -122,8 +122,8 @@ def update(selected=None):
         source_static.data = data
         reverse = False
     if new_data:
-        source.data = original_data[['simx', 'simy','realx','realy']]
-        source_static.data = original_data[['simx', 'simy','realx','realy']]
+        source.data = data[['simx', 'simy','realx','realy']]
+        source_static.data = data[['simx', 'simy','realx','realy']]
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -176,28 +176,30 @@ def selection_change(attrname, old, new):
     update()
 
 def reverse_sim():
-    global sim_polarity, reverse, new_data_s
+    global sim_polarity, reverse
     if (sim_reverse_button.active == 1): sim_polarity = -1
     else: sim_polarity = 1
-    reverse = True
-    new_data_s = True
+    reverse= True
     update()
 
 def reverse_real():
-    global real_polarity, reverse, new_data_r
+    global real_polarity, reverse
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
     reverse = True
-    new_data_r = True
     update()
 
 def change_sim_scale(shift):
-    global simx_offset
+    global simx_offset, new_data
     simx_offset = shift
+    new_data = True
+    update()
 
 def change_real_scale(shift):
-    global realx_offset
+    global realx_offset, new_data
     realx_offset = shift
+    new_data = True
+    update()
  
     
 file_input = FileInput(accept=".ulg, .csv")
