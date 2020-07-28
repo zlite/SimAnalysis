@@ -116,19 +116,19 @@ def update(selected=None):
        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
-    if (reverse):
+    if reverse:
         data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
         data[['realy']] = real_polarity * original_data[['realy']]
         source.data = data
         source_static.data = data
-        simmax = round(max(data[['simy']].values)[0])
+        simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(data[['simy']].values)[0])
         realmax = round(max(data[['realy']].values)[0])
         realmin = round(min(data[['realy']].values)[0])
-        ts1.y_range.start = simmin
-        ts1.y_range.end = simmax
-        ts2.y_range.start = realmin
-        ts2.y_range.end = realmax
+        ts1.y_range.start = simmin - abs((simmax-simmin)/10)
+        ts1.y_range.end = simmax + abs((simmax-simmin)/10)
+        ts2.y_range.start = realmin - abs((realmax-realmin)/10)
+        ts2.y_range.end = realmax + abs((realmax-realmin)/10)
         reverse = False
     if new_data:
         source.data = data[['simx', 'simy','realx','realy']]
