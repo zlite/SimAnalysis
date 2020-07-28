@@ -64,7 +64,7 @@ def load_data_real(realname):
 
 @lru_cache()
 def get_data(simname,realname):
-    global original_data
+ #   global original_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
@@ -73,7 +73,7 @@ def get_data(simname,realname):
     data['simx'] = data.simx
     data['realy'] = data.realy
     data['realx'] = data.realx
-    original_data = copy.deepcopy(data)
+#    original_data = copy.deepcopy(data)
     return data
 
 # set up widgets
@@ -90,13 +90,14 @@ source_static = ColumnDataSource(data = dict(realx=[],realy=[],simx=[],simy=[]))
 tools = 'xpan,wheel_zoom,xbox_select,reset'
 
 
-ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), y_range = None, active_drag="xbox_select")
+ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
 ts1.line('simx', 'simy', source=source, line_width=2)
 ts1.circle('simx', 'simy', size=1, source=source_static, color=None, selection_color="orange")
 
-ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', x_range=(0, 1000), y_range = None, active_drag="xbox_select")
+ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
+# to adjust ranges, add something like this: x_range=(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
-#ts2.line('realx', 'realy', source=source_static)
+# ts2.line('realx', 'realy', source=source_static)
 ts2.line('realx', 'realy', source=source, line_width=2)
 ts2.circle('realx', 'realy', size=1, source=source_static, color=None, selection_color="orange")
 
@@ -107,22 +108,24 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global tempdata, select_data, read_file, reverse, new_data, source, source_static
+    global read_file, reverse, new_data, source, source_static, original_data
     if (read_file):
-       tempdata = get_data(simname, realname)
+       original_data = get_data(simname, realname)
        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if (reverse):
-        tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        tempdata[['realy']] = real_polarity * original_data[['realy']]
+        source[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        source[['realy']] = real_polarity * original_data[['realy']]
+        source_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        source_static[['realy']] = real_polarity * original_data[['realy']]
         reverse = False
-    data = tempdata[['simx', 'simy','realx','realy']]
+        new_data = True
     if new_data:
-        source.data = data
-        source_static.data = data
+        source.data = original_data[['simx', 'simy','realx','realy']]
+        source_static.data = original_data[['simx', 'simy','realx','realy']]
         new_data = False
-    select_data = copy.deepcopy(tempdata)
+#    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def upload_new_data_sim(attr, old, new):
@@ -160,13 +163,12 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def selection_change(attrname, old, new):
-    global tempdata, source_static
-    data = select_data
-    selected = source_static.selected.indices
+    data = original_data
+    selected = source.selected.indices
     if selected:
-        data = select_data.iloc[selected, :]
+        data = data.iloc[selected, :]
     update_stats(data)
-    if (len(tempdata['realy']) != 0):
+    if (len(data['realy']) != 0):
         for x in range(len(source_static.data['realx'])):
             source_static.data['realx'][x] = source_static.data['realx'][x] - realx_offset
 #            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
