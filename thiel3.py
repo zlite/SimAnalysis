@@ -150,19 +150,20 @@ def upload_new_data_real(attr, old, new):
     update()
 
 def update_stats(data):
-    real = np.array(data.realy)
-    sim = np.array(data.simy)
+    real = np.array(data['realy'])
+    sim = np.array(data['simy'])
     sum1 = 0
     sum2 = 0
     sum3 = 0
 #    for n in np.nditer(data):
-    for n in range(len(data)):
+    for n in range(len(real)):
         sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
         sum2 = sum2 + real[int(n)]**2
         sum3 = sum3 + sim[int(n)]**2
     sum1 = 1/len(real) * sum1
     sum2 = 1/len(real) * sum2
     sum3 = 1/len(real) * sum3
+    print("Sum 1", sum1, "sum2", sum2, "sum3", sum3)
     sum1 = math.sqrt(sum1)
     sum2 = math.sqrt(sum2)
     sum3 = math.sqrt(sum3)
@@ -172,16 +173,18 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def selection_change(attrname, old, new):
-    data = original_data
-    selected = source.selected.indices
+    selected = source_static.selected.indices
+    print("selected:", selected)
     if selected:
-        data = data.iloc[selected, :]
-    update_stats(data)
-    if (len(data['realy']) != 0):
-        for x in range(len(source_static.data['realx'])):
-            source_static.data['realx'][x] = source_static.data['realx'][x] - realx_offset
+        seldata = data.iloc[selected, :]
+        update_stats(seldata)
+        print("update stats")
+ #   if (len(data['realy']) != 0):
+ #       for x in range(len(source_static.data['realx'])):
+ #           source_static.data['realx'][x] = source_static.data['realx'][x] - realx_offset
 #            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
 #            print(tempdata['realx'][x])
+   
     update()
 
 def reverse_sim():
