@@ -171,7 +171,7 @@ def update_stats(data):
     stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
 
 datatype.on_change('value', sim_change)
-
+#
 def selection_change(attrname, old, new):
     selected = source_static.selected.indices
     print("selected:", selected)
