@@ -109,18 +109,21 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, source, source_static, original_data, data, new_data
+    global read_file, reverse, new_data, source, source_static, original_data, data, data_static, new_data
     if (read_file):
        original_data = get_data(simname, realname)
        data = copy.deepcopy(original_data)
+       data_static = copy.deepcopy(original_data)
        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse:
         data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
         data[['realy']] = real_polarity * original_data[['realy']]
+        data_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        data_static[['realy']] = real_polarity * original_data[['realy']]
         source.data = data
-        source_static.data = data
+        source_static.data = data_static
         simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(data[['simy']].values)[0])
         realmax = round(max(data[['realy']].values)[0])
@@ -132,7 +135,7 @@ def update(selected=None):
         reverse = False
     if new_data:
         source.data = data[['simx', 'simy','realx','realy']]
-        source_static.data = data[['simx', 'simy','realx','realy']]
+        source_static.data = data_static[['simx', 'simy','realx','realy']]
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -171,20 +174,24 @@ def update_stats(data):
     stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
 
 datatype.on_change('value', sim_change)
-#
+
 def selection_change(attrname, old, new):
+    global data_static, new_data, realx_offset
     selected = source_static.selected.indices
     print("selected:", selected)
     if selected:
         seldata = data.iloc[selected, :]
         update_stats(seldata)
         print("update stats")
- #   if (len(data['realy']) != 0):
- #       for x in range(len(source_static.data['realx'])):
- #           source_static.data['realx'][x] = source_static.data['realx'][x] - realx_offset
+    if (len(data['realy']) != 0):
+        for x in range(len(data['realx'])):
+#            print ("Original x", data['realx'][x], "Modified X", data['realx'][x] + realx_offset)
+            data_static['realx'][x] = data_static['realx'][x] + realx_offset
+#            source_static.data['realy'][x] = source_static.data['realy'][x] + realx_offset
 #            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
-#            print(tempdata['realx'][x])
-   
+ #           print(tempdata['realx'][x]) 
+    realx_offset = 0
+    new_data = True
     update()
 
 def reverse_sim():
