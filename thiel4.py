@@ -84,23 +84,25 @@ datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 # set up plots
 
-source = ColumnDataSource(data = dict(realx=[],realy=[],simx=[],simy=[]))
-source_static = ColumnDataSource(data = dict(realx=[],realy=[],simx=[],simy=[]))
+simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
+simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
+realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
 
 realtools = 'xpan,wheel_zoom,xbox_select,reset'
 simtools = 'xpan,wheel_zoom,reset'
 
 ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-ts1.line('simx', 'simy', source=source, line_width=2)
-ts1.circle('simx', 'simy', size=1, source=source_static, color=None, selection_color="orange")
+ts1.line('simx', 'simy', source=simsource, line_width=2)
+ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
 
 ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
 # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
 # ts2.line('realx', 'realy', source=source_static)
-ts2.line('realx', 'realy', source=source, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=source_static, color=None, selection_color="orange")
+ts2.line('realx', 'realy', source=realsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color=None, selection_color="orange")
 
 # set up callbacks
 
@@ -109,7 +111,7 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, source, source_static, original_data, data, data_static, new_data
+    global read_file, reverse, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data
     if (read_file):
        original_data = get_data(simname, realname)
        data = copy.deepcopy(original_data)
@@ -122,8 +124,10 @@ def update(selected=None):
         data[['realy']] = real_polarity * original_data[['realy']]
         data_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
         data_static[['realy']] = real_polarity * original_data[['realy']]
-        source.data = data
-        source_static.data = data_static
+        simsource.data = data
+        simsource_static.data = data_static
+        realsource.data = data
+        realsource_static.data = data_static
         simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(data[['simy']].values)[0])
         realmax = round(max(data[['realy']].values)[0])
@@ -134,8 +138,10 @@ def update(selected=None):
         ts2.y_range.end = realmax + abs((realmax-realmin)/10)
         reverse = False
     if new_data:
-        source.data = data[['simx', 'simy','realx','realy']]
-        source_static.data = data_static[['simx', 'simy','realx','realy']]
+        simsource.data = data[['simx', 'simy','realx','realy']]
+        simsource_static.data = data_static[['simx', 'simy','realx','realy']]
+        realsource.data = data[['simx', 'simy','realx','realy']]
+        realsource_static.data = data_static[['simx', 'simy','realx','realy']]
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -174,9 +180,9 @@ def update_stats(data):
 
 datatype.on_change('value', sim_change)
 
-def selection_change(attrname, old, new):
+def simselection_change(attrname, old, new):
     global data_static, new_data, realx_offset
-    selected = source_static.selected.indices
+    selected = simsource_static.selected.indices
     if selected:
         seldata = data.iloc[selected, :]
         print("Just real part", seldata)
@@ -237,7 +243,8 @@ real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-source_static.selected.on_change('indices', selection_change)
+simsource_static.selected.on_change('indices', simselection_change)
+
 
 # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
 #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
