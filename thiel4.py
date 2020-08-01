@@ -185,16 +185,30 @@ def simselection_change(attrname, old, new):
     selected = simsource_static.selected.indices
     if selected:
         seldata = data.iloc[selected, :]
-        print("Just real part", seldata[['simy']])
-        realsource_static.data = seldata
-        update_stats(seldata)
-#    if (len(data['realy']) != 0):
-#        for x in range(len(data['realx'])):
+#        print("Seldata:")
+#        print(seldata)
+#        print(range(len(seldata['realx'])))
+#        print(seldata['realx']) 
+#        print("Just real part", seldata[['simy']])
+        sorted_data = seldata.sort_values(by=['simx'])
+#        print(type(seldata))
+#        sorted_data = sorted(seldata.items(), key=seldata.get)
+#        print("Sorted:")
+        print(sorted_data)
+#        start = sorted_data.iloc[0]
+        start = int(sorted_data.values[0][0])
+        print("Start =", start)
+    if (len(seldata['realx']) != 0):
+        for x in range(start, (start+len(sorted_data['realx'])-1)):
+            temp = sorted_data['realx'][x] + 20
+            print("x", x, "temp", temp)
 #            print ("Original x", data['realx'][x], "Modified X", data['realx'][x] + realx_offset)
 #            data_static['realx'][x] = data_static['realx'][x] + realx_offset
 #            source_static.data['realy'][x] = source_static.data['realy'][x] + realx_offset
 #            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
  #           print(tempdata['realx'][x]) 
+        realsource_static.data = seldata
+        update_stats(seldata)
     realx_offset = 0
     new_data = True
     update()
