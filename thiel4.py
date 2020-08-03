@@ -59,12 +59,13 @@ def load_data_sim(simname):
 def load_data_real(realname):
     global select_data
     fname = join(DATA_DIR, realname)
-    select_data = np.genfromtxt(fname,delimiter=',')
+    data = pd.read_csv(fname)
+ #   select_data.to_numpy()  # convert to a numpy array
+    select_data=np.asarray(data)  # convert to an array
     print("select data")
     print(select_data)
     print("Example of [2][1], which should be the Y for the second X")
     print(select_data[2][1])
-    data = pd.read_csv(fname)
     dfreal = pd.DataFrame(data)
     return dfreal
 
@@ -148,7 +149,8 @@ def update(selected=None):
         realsource.data = data[['simx', 'simy','realx','realy']]
         for x in range(len(realsource.data['realx'])-1):
             select_data[x][1] = 0        # zero out the real selected data
-        realsource_static = ColumnDataSource(select_data)
+        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
+        realsource_static = ColumnDataSource(select_datadf)
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -227,7 +229,8 @@ def simselection_change(attrname, old, new):
  #       realsource_static.data = seldata
  #       print("Full realsource_static:")
  #       print(realsource_static.data)
-        realsource_static = ColumnDataSource(select_data)
+        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
+        realsource_static = ColumnDataSource(select_datadf)
         update_stats(seldata)
     realx_offset = 0
     new_data = True
