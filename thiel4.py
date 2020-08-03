@@ -190,9 +190,11 @@ def simselection_change(attrname, old, new):
         print("Start =", start)
     if (len(seldata['simx']) != 0):
         for x in range(len(select_data)):
-            select_data[x][1] = 0    #zero out the data
+            select_data[x][0] = 0    #zero out the data
+            select_data[x][1] = 0
         for x in range(start, (start+len(sorted_data['simx'])-1)):
-            tempx = int(sorted_data['realx'][x] + 20)
+            tempx = int(sorted_data['realx'][x] + realx_offset + 40)
+            select_data[tempx][0] = realsource.data['realx'][tempx]
             select_data[tempx][1] = realsource.data['realy'][tempx]
         update_stats(seldata)
     realx_offset = 0

@@ -20,7 +20,7 @@ from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
 from bokeh.models import RadioButtonGroup
-
+from bokeh.models import Range1d
 
 import time
 import copy
@@ -44,23 +44,31 @@ sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
 realx_offset = 0
-
+read_file = True
+reverse = False
+new_data = True
 
 @lru_cache()
 def load_data_sim(simname):
-    data = pd.read_csv(simname)
+    fname = join(DATA_DIR, simname)
+    data = pd.read_csv(fname)
     dfsim = pd.DataFrame(data)
     return dfsim
 
+@lru_cache()
 def load_data_real(realname):
-    data = pd.read_csv(realname)
+    global select_data
+    fname = join(DATA_DIR, realname)
+    data = pd.read_csv(fname)
+ #   select_data.to_numpy()  # convert to a numpy array
+    select_data=np.asarray(data)  # convert to an array
     dfreal = pd.DataFrame(data)
     return dfreal
 
 
 @lru_cache()
 def get_data(simname,realname):
-    global original_data
+ #   global original_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
@@ -69,7 +77,7 @@ def get_data(simname,realname):
     data['simx'] = data.simx
     data['realy'] = data.realy
     data['realx'] = data.realx
-    original_data = copy.deepcopy(data)
+#    original_data = copy.deepcopy(data)
     return data
 
 # set up widgets
@@ -79,21 +87,23 @@ datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 # set up plots
 
-realsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-realsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-simsource = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-simsource_static = ColumnDataSource(data = dict(simx=[],simy=[],realx=[],realy=[]))
-tools = 'pan,wheel_zoom,xbox_select,reset'
+simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
+simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
+realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
-ts1 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
+realtools = 'xpan,wheel_zoom,xbox_select,reset'
+simtools = 'xpan,wheel_zoom,reset'
+
+ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
 ts1.line('simx', 'simy', source=simsource, line_width=2)
 ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
 
-ts2 = figure(plot_width=900, plot_height=200, tools=tools, x_axis_type='linear', active_drag="xbox_select")
+ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+# to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
-#ts2.line('realx', 'realy', source=source_static)
-ts2.line('realx', 'realy', source=simsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=simsource_static, color=None, selection_color="orange")
+ts2.line('realx', 'realy', source=realsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 # set up callbacks
 
@@ -102,18 +112,39 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global tempdata, select_data
-    tempdata = get_data(simname, realname)
+    global read_file, reverse, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data, select_data
+    if (read_file):
+        original_data = get_data(simname, realname)
+        data = copy.deepcopy(original_data)
+        data_static = copy.deepcopy(original_data)
+        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
-    tempdata[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if neessary
-    tempdata[['realy']] = real_polarity * original_data[['realy']]
-    data = tempdata[['simx', 'simy','realx','realy']]
-    realsource.data = data
-    realsource_static.data = data
-    simsource.data = data
-    simsource_static.data = data
-    select_data = copy.deepcopy(tempdata)
+    if reverse:
+        data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        data[['realy']] = real_polarity * original_data[['realy']]
+        data_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
+        data_static[['realy']] = real_polarity * original_data[['realy']]
+        simsource.data = data
+        simsource_static.data = data_static
+        realsource.data = data
+        simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
+        simmin = round(min(data[['simy']].values)[0])
+        realmax = round(max(data[['realy']].values)[0])
+        realmin = round(min(data[['realy']].values)[0])
+        ts1.y_range.start = simmin - abs((simmax-simmin)/10)
+        ts1.y_range.end = simmax + abs((simmax-simmin)/10)
+        ts2.y_range.start = realmin - abs((realmax-realmin)/10)
+        ts2.y_range.end = realmax + abs((realmax-realmin)/10)
+        reverse = False
+    if new_data:
+        simsource.data = data[['simx', 'simy','realx','realy']]
+        simsource_static.data = data_static[['simx', 'simy','realx','realy']]
+        realsource.data = data[['simx', 'simy','realx','realy']]
+        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
+        realsource_static.data = select_datadf
+        new_data = False
+#    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def upload_new_data_sim(attr, old, new):
@@ -129,13 +160,12 @@ def upload_new_data_real(attr, old, new):
     update()
 
 def update_stats(data):
-    real = np.array(data.realy)
-    sim = np.array(data.simy)
+    real = np.array(data['realy'])
+    sim = np.array(data['simy'])
     sum1 = 0
     sum2 = 0
     sum3 = 0
-#    for n in np.nditer(data):
-    for n in range(len(data)):
+    for n in range(len(real)):
         sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
         sum2 = sum2 + real[int(n)]**2
         sum3 = sum3 + sim[int(n)]**2
@@ -150,46 +180,52 @@ def update_stats(data):
 
 datatype.on_change('value', sim_change)
 
-def selection_change(attrname, old, new):
-    print("new:", new)
-    data = select_data
-    update()
+def simselection_change(attrname, old, new):
+    global data_static, new_data, realx_offset, realsource_static,select_data
     selected = simsource_static.selected.indices
-    print("Selected: ", selected)
     if selected:
-        data = select_data.iloc[selected, :]
-    update_stats(data)
-
-##def realselection_change(attrname, old, new):
-##    data = select_data
-###    data.simx = data.simx+100
-###    print ("Data simx, simx +100", data.simx, data.simx+100)
-###    realsource_static = simsource_static
-##    print("Realsource_static x =", realsource_static['realx'])
-##    selected = realsource_static.selected.indices
-##    if selected:
-##        data = select_data.iloc[selected, :]
-##    update_stats(data)
+        seldata = data.iloc[selected, :]
+        sorted_data = seldata.sort_values(by=['simx'])
+        start = int(sorted_data.values[0][0])
+        print("Start =", start)
+    if (len(seldata['simx']) != 0):
+        for x in range(len(select_data)):
+            select_data[x][0] = 0    #zero out the data
+            select_data[x][1] = 0
+        for x in range(start, (start+len(sorted_data['simx'])-1)):
+            tempx = int(sorted_data['realx'][x] + realx_offset + 40)
+            select_data[tempx][0] = realsource.data['realx'][tempx]
+            select_data[tempx][1] = realsource.data['realy'][tempx]
+        update_stats(seldata)
+    realx_offset = 0
+    new_data = True
+    update()
 
 def reverse_sim():
-    global sim_polarity
+    global sim_polarity, reverse
     if (sim_reverse_button.active == 1): sim_polarity = -1
     else: sim_polarity = 1
+    reverse= True
     update()
 
 def reverse_real():
-    global real_polarity
+    global real_polarity, reverse
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
+    reverse = True
     update()
 
 def change_sim_scale(shift):
-    global simx_offset
+    global simx_offset, new_data
     simx_offset = shift
+    new_data = True
+    update()
 
 def change_real_scale(shift):
-    global realx_offset
+    global realx_offset, new_data
     realx_offset = shift
+    new_data = True
+    update()
  
     
 file_input = FileInput(accept=".ulg, .csv")
@@ -209,8 +245,9 @@ real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-simsource_static.selected.on_change('indices', selection_change)
-#realsource_static.selected.on_change('indices', realselection_change)
+simsource_static.selected.on_change('indices', simselection_change)
+
+
 # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
 #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
 #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
