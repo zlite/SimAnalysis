@@ -57,7 +57,13 @@ def load_data_sim(simname):
 
 @lru_cache()
 def load_data_real(realname):
+    global select_data
     fname = join(DATA_DIR, realname)
+    select_data = np.genfromtxt(fname,delimiter=',')
+    print("select data")
+    print(select_data)
+    print("Example of [2][1], which should be the Y for the second X")
+    print(select_data[2][1])
     data = pd.read_csv(fname)
     dfreal = pd.DataFrame(data)
     return dfreal
@@ -89,7 +95,6 @@ simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
 realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
 realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
-
 realtools = 'xpan,wheel_zoom,xbox_select,reset'
 simtools = 'xpan,wheel_zoom,reset'
 
@@ -111,12 +116,12 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data
+    global read_file, reverse, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data, select_data
     if (read_file):
-       original_data = get_data(simname, realname)
-       data = copy.deepcopy(original_data)
-       data_static = copy.deepcopy(original_data)
-       read_file = False
+        original_data = get_data(simname, realname)
+        data = copy.deepcopy(original_data)
+        data_static = copy.deepcopy(original_data)
+        read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse:
@@ -141,7 +146,9 @@ def update(selected=None):
         simsource.data = data[['simx', 'simy','realx','realy']]
         simsource_static.data = data_static[['simx', 'simy','realx','realy']]
         realsource.data = data[['simx', 'simy','realx','realy']]
-  #      realsource_static.data = data_static[['simx', 'simy','realx','realy']]
+        for x in range(len(realsource.data['realx'])-1):
+            select_data[x][1] = 0        # zero out the real selected data
+        realsource_static = ColumnDataSource(select_data)
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -181,7 +188,7 @@ def update_stats(data):
 datatype.on_change('value', sim_change)
 
 def simselection_change(attrname, old, new):
-    global data_static, new_data, realx_offset
+    global data_static, new_data, realx_offset, realsource_static,select_data
     selected = simsource_static.selected.indices
     if selected:
         seldata = data.iloc[selected, :]
@@ -194,20 +201,33 @@ def simselection_change(attrname, old, new):
 #        print(type(seldata))
 #        sorted_data = sorted(seldata.items(), key=seldata.get)
 #        print("Sorted:")
-        print(sorted_data)
+#        print(sorted_data)
 #        start = sorted_data.iloc[0]
         start = int(sorted_data.values[0][0])
         print("Start =", start)
-    if (len(seldata['realx']) != 0):
-        for x in range(start, (start+len(sorted_data['realx'])-1)):
-            temp = sorted_data['realx'][x] + 20
-            print("x", x, "temp", temp)
+#        realsource_static.data = dict(realsource.data)
+#        print("Full realsource:")
+#        print(realsource.data)
+    if (len(seldata['simx']) != 0):
+        for x in range(len(select_data[0])):
+            select_data[x][1] = 0    #zero out the data
+        for x in range(start, (start+len(sorted_data['simx'])-1)):
+            tempx = sorted_data['realx'][x] + 20
+            select_data[tempx][1] = realsource.data['realy'][tempx]
+#            realsource_static.data['realx'][tempx] = realsource.data['realx'][tempx]
+#            realsource_static.data['realy'][tempx] = realsource.data['realy'][tempx]
+            print("tempx", tempx)
+            print("x", select_data[x][0])
+            print("y", select_data[x][1])
 #            print ("Original x", data['realx'][x], "Modified X", data['realx'][x] + realx_offset)
 #            data_static['realx'][x] = data_static['realx'][x] + realx_offset
 #            source_static.data['realy'][x] = source_static.data['realy'][x] + realx_offset
 #            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
  #           print(tempdata['realx'][x]) 
-        realsource_static.data = seldata
+ #       realsource_static.data = seldata
+ #       print("Full realsource_static:")
+ #       print(realsource_static.data)
+        realsource_static = ColumnDataSource(select_data)
         update_stats(seldata)
     realx_offset = 0
     new_data = True
