@@ -62,10 +62,6 @@ def load_data_real(realname):
     data = pd.read_csv(fname)
  #   select_data.to_numpy()  # convert to a numpy array
     select_data=np.asarray(data)  # convert to an array
-    print("select data")
-    print(select_data)
-    print("Example of [2][1], which should be the Y for the second X")
-    print(select_data[2][1])
     dfreal = pd.DataFrame(data)
     return dfreal
 
@@ -106,7 +102,6 @@ ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selectio
 ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
 # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
-# ts2.line('realx', 'realy', source=source_static)
 ts2.line('realx', 'realy', source=realsource, line_width=2)
 ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
@@ -129,11 +124,10 @@ def update(selected=None):
         data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
         data[['realy']] = real_polarity * original_data[['realy']]
         data_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
- #       data_static[['realy']] = real_polarity * original_data[['realy']]
+        data_static[['realy']] = real_polarity * original_data[['realy']]
         simsource.data = data
         simsource_static.data = data_static
         realsource.data = data
- #       realsource_static.data = data_static
         simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(data[['simy']].values)[0])
         realmax = round(max(data[['realy']].values)[0])
@@ -147,10 +141,8 @@ def update(selected=None):
         simsource.data = data[['simx', 'simy','realx','realy']]
         simsource_static.data = data_static[['simx', 'simy','realx','realy']]
         realsource.data = data[['simx', 'simy','realx','realy']]
-        for x in range(len(realsource.data['realx'])-1):
-            select_data[x][1] = 0        # zero out the real selected data
         select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
-        realsource_static = ColumnDataSource(select_datadf)
+        realsource_static.data = select_datadf
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
     ts1.title.text, ts2.title.text = 'Sim', 'Real'
@@ -173,7 +165,6 @@ def update_stats(data):
     sum1 = 0
     sum2 = 0
     sum3 = 0
-#    for n in np.nditer(data):
     for n in range(len(real)):
         sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
         sum2 = sum2 + real[int(n)]**2
@@ -194,43 +185,15 @@ def simselection_change(attrname, old, new):
     selected = simsource_static.selected.indices
     if selected:
         seldata = data.iloc[selected, :]
-#        print("Seldata:")
-#        print(seldata)
-#        print(range(len(seldata['realx'])))
-#        print(seldata['realx']) 
-#        print("Just real part", seldata[['simy']])
         sorted_data = seldata.sort_values(by=['simx'])
-#        print(type(seldata))
-#        sorted_data = sorted(seldata.items(), key=seldata.get)
-#        print("Sorted:")
-#        print(sorted_data)
-#        start = sorted_data.iloc[0]
         start = int(sorted_data.values[0][0])
         print("Start =", start)
-#        realsource_static.data = dict(realsource.data)
-#        print("Full realsource:")
-#        print(realsource.data)
     if (len(seldata['simx']) != 0):
-        for x in range(len(select_data[0])):
+        for x in range(len(select_data)):
             select_data[x][1] = 0    #zero out the data
         for x in range(start, (start+len(sorted_data['simx'])-1)):
-            tempx = sorted_data['realx'][x] + 20
+            tempx = int(sorted_data['realx'][x] + 20)
             select_data[tempx][1] = realsource.data['realy'][tempx]
-#            realsource_static.data['realx'][tempx] = realsource.data['realx'][tempx]
-#            realsource_static.data['realy'][tempx] = realsource.data['realy'][tempx]
-            print("tempx", tempx)
-            print("x", select_data[x][0])
-            print("y", select_data[x][1])
-#            print ("Original x", data['realx'][x], "Modified X", data['realx'][x] + realx_offset)
-#            data_static['realx'][x] = data_static['realx'][x] + realx_offset
-#            source_static.data['realy'][x] = source_static.data['realy'][x] + realx_offset
-#            tempdata['realx'][x] = tempdata['realx'][x] - realx_offset
- #           print(tempdata['realx'][x]) 
- #       realsource_static.data = seldata
- #       print("Full realsource_static:")
- #       print(realsource_static.data)
-        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
-        realsource_static = ColumnDataSource(select_datadf)
         update_stats(seldata)
     realx_offset = 0
     new_data = True
