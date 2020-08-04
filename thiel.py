@@ -142,7 +142,6 @@ def update(selected=None):
         ts2.y_range.start = realmin - abs((realmax-realmin)/10)
         ts2.y_range.end = realmax + abs((realmax-realmin)/10)
         reverse_real_data = False
-
     if new_data:
         simsource.data = data[['simx', 'simy','realx','realy']]
         simsource_static.data = data_static[['simx', 'simy','realx','realy']]
@@ -199,7 +198,7 @@ def simselection_change(attrname, old, new):
             select_data[x][0] = 0    #zero out the data
             select_data[x][1] = 0
         for x in range(start, (start+len(sorted_data['simx'])-1)):
-            tempx = int(sorted_data['realx'][x] + realx_offset + 40)
+            tempx = int(sorted_data['realx'][x] + realx_offset - simx_offset)
             select_data[tempx][0] = realsource.data['realx'][tempx]
             select_data[tempx][1] = realsource.data['realy'][tempx]
         update_stats(seldata)
@@ -260,8 +259,6 @@ simsource_static.selected.on_change('indices', simselection_change)
 
 ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
 ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
-
-print("reverse =", reverse_real)
 
 # set up layout
 widgets = column(datatype,stats)
