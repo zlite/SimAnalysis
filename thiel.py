@@ -45,7 +45,8 @@ real_polarity = 1
 simx_offset = 0
 realx_offset = 0
 read_file = True
-reverse = False
+reverse_sim_data = False
+reverse_real_data = False
 new_data = True
 
 @lru_cache()
@@ -112,7 +113,7 @@ def sim_change(attrname, old, new):
     update()
 
 def update(selected=None):
-    global read_file, reverse, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data, select_data
+    global read_file, reverse_sim_data, reverse_real_data, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data, select_data, select_datadf
     if (read_file):
         original_data = get_data(simname, realname)
         data = copy.deepcopy(original_data)
@@ -120,28 +121,33 @@ def update(selected=None):
         read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
-    if reverse:
+    if reverse_sim_data:
         data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        data[['realy']] = real_polarity * original_data[['realy']]
         data_static[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        data_static[['realy']] = real_polarity * original_data[['realy']]
         simsource.data = data
         simsource_static.data = data_static
-        realsource.data = data
         simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(data[['simy']].values)[0])
-        realmax = round(max(data[['realy']].values)[0])
-        realmin = round(min(data[['realy']].values)[0])
         ts1.y_range.start = simmin - abs((simmax-simmin)/10)
         ts1.y_range.end = simmax + abs((simmax-simmin)/10)
+        reverse_sim_data = False
+    if reverse_real_data:
+        data[['realy']] = real_polarity * original_data[['realy']]
+        data_static[['realy']] = real_polarity * original_data[['realy']]
+        realsource.data = data
+        select_datadf[['realy']] = -1 * select_datadf[['realy']]
+        realsource_static.data = select_datadf
+        realmax = round(max(data[['realy']].values)[0])
+        realmin = round(min(data[['realy']].values)[0])
         ts2.y_range.start = realmin - abs((realmax-realmin)/10)
         ts2.y_range.end = realmax + abs((realmax-realmin)/10)
-        reverse = False
+        reverse_real_data = False
+
     if new_data:
         simsource.data = data[['simx', 'simy','realx','realy']]
         simsource_static.data = data_static[['simx', 'simy','realx','realy']]
         realsource.data = data[['simx', 'simy','realx','realy']]
-        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe
+        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe     
         realsource_static.data = select_datadf
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
@@ -202,17 +208,17 @@ def simselection_change(attrname, old, new):
     update()
 
 def reverse_sim():
-    global sim_polarity, reverse
+    global sim_polarity, reverse_sim_data
     if (sim_reverse_button.active == 1): sim_polarity = -1
     else: sim_polarity = 1
-    reverse= True
+    reverse_sim_data = True
     update()
 
 def reverse_real():
-    global real_polarity, reverse
+    global real_polarity, reverse_real_data
     if (real_reverse_button.active == 1): real_polarity = -1
     else: real_polarity = 1
-    reverse = True
+    reverse_real_data = True
     update()
 
 def change_sim_scale(shift):
@@ -255,7 +261,7 @@ simsource_static.selected.on_change('indices', simselection_change)
 ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
 ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
 
-
+print("reverse =", reverse_real)
 
 # set up layout
 widgets = column(datatype,stats)
