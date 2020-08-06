@@ -202,7 +202,6 @@ def simselection_change(attrname, old, new):
             select_data[tempx][0] = realsource.data['realx'][tempx]
             select_data[tempx][1] = realsource.data['realy'][tempx]
         update_stats(seldata)
-    realx_offset = 0
     new_data = True
     update()
 
