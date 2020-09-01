@@ -38,8 +38,8 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-simname = 'sim2.csv'
-realname = 'real2.csv'
+simname = 'airtonomysim.csv'
+realname = 'airtonomyreal.csv'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
