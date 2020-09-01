@@ -20,6 +20,7 @@
 import pandas as pd
 import px4tools
 
+a = 2
 df1 = pd.read_csv(r'real.csv')
 df2 = pd.read_csv(r'sim.csv')
 df3 = pd.read_csv(r'sim.csv')
