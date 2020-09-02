@@ -58,26 +58,29 @@ def load_data_sim(simname):
 
 @lru_cache()
 def load_data_real(realname):
-    global select_data
     fname = join(DATA_DIR, realname)
     data = pd.read_csv(fname)
  #   select_data.to_numpy()  # convert to a numpy array
-    select_data=np.asarray(data)  # convert to an array
     dfreal = pd.DataFrame(data)
     return dfreal
 
 
 @lru_cache()
 def get_data(simname,realname):
- #   global original_data
+    global select_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
     data = pd.concat([dfsim, dfreal], axis=1)
     data = data.dropna()   # remove missing values
+    sim_mean = data.simy.mean()  # get the average
+    real_mean = data.realy.mean()
+    mean_diff = sim_mean - real_mean 
+    data.realy = data.realy + mean_diff # normalize the two
     data['simy'] = data.simy
     data['simx'] = data.simx
     data['realy'] = data.realy
     data['realx'] = data.realx
+    select_data=np.asarray(data)  # convert to an array for real selection line
 #    original_data = copy.deepcopy(data)
     return data
 
@@ -146,7 +149,7 @@ def update(selected=None):
         simsource.data = data[['simx', 'simy','realx','realy']]
         simsource_static.data = data_static[['simx', 'simy','realx','realy']]
         realsource.data = data[['simx', 'simy','realx','realy']]
-        select_datadf = pd.DataFrame({'realx': select_data[:, 0], 'realy': select_data[:, 1]})  # convert back to a pandas dataframe     
+        select_datadf = pd.DataFrame({'realx': select_data[:, 2], 'realy': select_data[:, 3]})  # convert back to a pandas dataframe     
         realsource_static.data = select_datadf
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
@@ -195,12 +198,12 @@ def simselection_change(attrname, old, new):
         print("Start =", start)
     if (len(seldata['simx']) != 0):
         for x in range(len(select_data)):
-            select_data[x][0] = 0    #zero out the data
-            select_data[x][1] = 0
+            select_data[x][2] = 0    #zero out the data
+            select_data[x][3] = 0
         for x in range(start, (start+len(sorted_data['simx'])-1)):
             tempx = int(sorted_data['realx'][x] + realx_offset - simx_offset)
-            select_data[tempx][0] = realsource.data['realx'][tempx]
-            select_data[tempx][1] = realsource.data['realy'][tempx]
+            select_data[tempx][2] = realsource.data['realx'][tempx]
+            select_data[tempx][3] = realsource.data['realy'][tempx]
         update_stats(seldata)
     new_data = True
     update()
