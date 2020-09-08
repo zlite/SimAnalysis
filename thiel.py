@@ -280,3 +280,4 @@ curdoc().add_root(real_upload_text)
 curdoc().add_root(file_input2)
 curdoc().add_root(layout)
 curdoc().title = "Flight data"
+# curdoc().add_periodic_callback(update, 100)
