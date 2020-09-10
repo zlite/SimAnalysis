@@ -45,7 +45,7 @@ def convert_ulog2csv(ulog_file_name):
         # slow...
 
         # write the header
-        print(delimiter.join(data_keys) + '\n')
+        # print(delimiter.join(data_keys) + '\n')
 
         # write the data
         # last_elem = len(data_keys)-1
@@ -55,5 +55,7 @@ def convert_ulog2csv(ulog_file_name):
         #         if k != last_elem:
         #             csvfile.write(delimiter)
         #     csvfile.write('\n')
+        print("Key =", data_keys)
+        print("Data =", d.data)
 
 convert_ulog2csv("airtonomysim.ulg")
