@@ -60,5 +60,6 @@ def convert_ulog2csv(ulog_file_name):
             keylist.append(g)
 #        print("Data =", d.data)
     print("Keylist =", keylist)
+    print("One item", keylist[10])
 
 convert_ulog2csv("airtonomysim.ulg")
