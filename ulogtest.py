@@ -12,7 +12,7 @@ import os
 from pyulog import ULog
 
 #pylint: disable=too-many-locals, invalid-name, consider-using-enumerate
-
+keylist = []
 
 
 def convert_ulog2csv(ulog_file_name):
@@ -38,7 +38,7 @@ def convert_ulog2csv(ulog_file_name):
         # use same field order as in the log, except for the timestamp
         data_keys = [f.field_name for f in d.field_data]
         data_keys.remove('timestamp')
-        data_keys.insert(0, 'timestamp')  # we want timestamp at first position
+      #  data_keys.insert(0, 'timestamp')  # we want timestamp at first position
 
         # we don't use np.savetxt, because we have multiple arrays with
         # potentially different data types. However the following is quite
@@ -56,6 +56,9 @@ def convert_ulog2csv(ulog_file_name):
         #             csvfile.write(delimiter)
         #     csvfile.write('\n')
         print("Key =", data_keys)
-        print("Data =", d.data)
+        for g in data_keys:
+            keylist.append(g)
+#        print("Data =", d.data)
+    print("Keylist =", keylist)
 
 convert_ulog2csv("airtonomysim.ulg")
