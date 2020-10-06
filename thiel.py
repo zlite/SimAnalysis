@@ -13,6 +13,9 @@ import px4tools
 import numpy as np
 import math
 import io
+import os
+import sys
+import errno
 from functools import lru_cache
 from os.path import dirname, join
 from bokeh.io import output_file, show
@@ -21,6 +24,10 @@ from bokeh.models.widgets import Paragraph
 from bokeh.models import CheckboxGroup
 from bokeh.models import RadioButtonGroup
 from bokeh.models import Range1d
+from bokeh.server.server import Server
+from bokeh.themes import Theme
+from bokeh.application.handlers import DirectoryHandler
+
 
 import time
 import copy
@@ -28,8 +35,8 @@ from bokeh.models import Div
 
 
 import pandas as pd
+import argparse
 
-from bokeh.io import curdoc
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
 from bokeh.plotting import figure
@@ -48,6 +55,65 @@ read_file = True
 reverse_sim_data = False
 reverse_real_data = False
 new_data = True
+
+def _fixup_deprecated_host_args(arguments):
+    # --host is deprecated since bokeh 0.12.5. You might want to use
+    # --allow-websocket-origin instead
+    if arguments.host is not None and len(arguments.host) > 0:
+        if arguments.allow_websocket_origin is None:
+            arguments.allow_websocket_origin = []
+        arguments.allow_websocket_origin += arguments.host
+        arguments.allow_websocket_origin = list(set(arguments.allow_websocket_origin))
+
+parser = argparse.ArgumentParser(description='Start bokeh Server')
+
+parser.add_argument('-s', '--show', dest='show', action='store_true',
+                    help='Open browser on startup')
+parser.add_argument('--use-xheaders', action='store_true',
+                    help="Prefer X-headers for IP/protocol information")
+parser.add_argument('-f', '--file', metavar='file.ulg', action='store',
+                    help='Directly show an ULog file, only for local use (implies -s)',
+                    default=None)
+parser.add_argument('--3d', dest='threed', action='store_true',
+                    help='Open 3D page (only if --file is provided)')
+parser.add_argument('--pid-analysis', dest='pid_analysis', action='store_true',
+                    help='Open PID analysis page (only if --file is provided)')
+parser.add_argument('--num-procs', dest='numprocs', type=int, action='store',
+                    help="""Number of worker processes. Default to 1.
+                    0 will autodetect number of cores""",
+                    default=1)
+parser.add_argument('--port', type=int, action='store',
+                    help='Port to listen on', default=None)
+parser.add_argument('--address', action='store',
+                    help='Network address to listen to', default=None)
+parser.add_argument('--host', action='append', type=str, metavar='HOST[:PORT]',
+                    help="""Hosts whitelist, that must match the Host header in new
+                    requests. It has the form <host>[:<port>]. If no port is specified, 80
+                    is used. You should use the DNS name of the public endpoint here. \'*\'
+                    matches all hosts (for testing only) (default=localhost)""",
+                    default=None)
+parser.add_argument('--allow-websocket-origin', action='append', type=str, metavar='HOST[:PORT]',
+                    help="""Public hostnames which may connect to the Bokeh websocket""",
+                    default=None)
+
+args = parser.parse_args()
+
+# This should remain here until --host is removed entirely
+_fixup_deprecated_host_args(args)
+
+
+server_kwargs = {}
+if args.port is not None: server_kwargs['port'] = args.port
+if args.use_xheaders: server_kwargs['use_xheaders'] = args.use_xheaders
+server_kwargs['num_procs'] = args.numprocs
+if args.address is not None: server_kwargs['address'] = args.address
+if args.host is not None: server_kwargs['host'] = args.host
+if args.allow_websocket_origin is not None:
+    server_kwargs['allow_websocket_origin'] = args.allow_websocket_origin
+server_kwargs['websocket_max_message_size'] = 100 * 1024 * 1024
+
+# increase the maximum upload size (default is 100MB)
+server_kwargs['http_server_kwargs'] = {'max_buffer_size': 300 * 1024 * 1024}
 
 @lru_cache()
 def load_data_sim(simname):
@@ -234,50 +300,83 @@ def change_real_scale(shift):
     new_data = True
     update()
  
-    
-file_input = FileInput(accept=".ulg, .csv")
-file_input.on_change('value', upload_new_data_sim)
-file_input2 = FileInput(accept=".ulg, .csv")
-file_input2.on_change('value', upload_new_data_real)
 
-intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
-sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
-real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
-#checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
+def startserver(doc):
+    file_input = FileInput(accept=".ulg, .csv")
+    file_input.on_change('value', upload_new_data_sim)
+    file_input2 = FileInput(accept=".ulg, .csv")
+    file_input2.on_change('value', upload_new_data_real)
 
-sim_reverse_button = RadioButtonGroup(
-        labels=["Sim Default", "Reversed"], active=0)
-sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
-real_reverse_button = RadioButtonGroup(
-        labels=["Real Default", "Reversed"], active=0)
-real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
+    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+    sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
+    real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+    #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
-simsource_static.selected.on_change('indices', simselection_change)
+    sim_reverse_button = RadioButtonGroup(
+            labels=["Sim Default", "Reversed"], active=0)
+    sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
+    real_reverse_button = RadioButtonGroup(
+            labels=["Real Default", "Reversed"], active=0)
+    real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
+
+    simsource_static.selected.on_change('indices', simselection_change)
 
 
-# The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
-#ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
-#ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+    # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
+    #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+    #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
 
-ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
-ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
+    ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
+    ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
 
-# set up layout
-widgets = column(datatype,stats)
-sim_button = column(sim_reverse_button)
-real_button = column(real_reverse_button)
-main_row = row(widgets)
-series = column(ts1, sim_button, ts2, real_button)
-layout = column(main_row, series)
+    # set up layout
+    widgets = column(datatype,stats)
+    sim_button = column(sim_reverse_button)
+    real_button = column(real_reverse_button)
+    main_row = row(widgets)
+    series = column(ts1, sim_button, ts2, real_button)
+    layout = column(main_row, series)
 
-# initialize
-update()
+    # initialize
+    update()
+    doc.add_root(intro_text)
 
-curdoc().add_root(intro_text)
-curdoc().add_root(sim_upload_text)
-curdoc().add_root(file_input)
-curdoc().add_root(real_upload_text)
-curdoc().add_root(file_input2)
-curdoc().add_root(layout)
-curdoc().title = "Flight data"
-# curdoc().add_periodic_callback(update, 100)
+    doc.add_root(sim_upload_text)
+    doc.add_root(file_input)
+    doc.add_root(real_upload_text)
+    doc.add_root(file_input2)
+    doc.add_root(layout)
+    doc.title = "Flight data"
+    # curdoc().add_periodic_callback(update, 100)
+
+# Setting num_procs here means we can't touch the IOLoop before now, we must
+# let Server handle that. If you need to explicitly handle IOLoops then you
+# will need to use the lower level BaseServer class.
+server = Server({'/': startserver}, num_procs=1)
+server.start()
+
+
+if __name__ == '__main__':
+#     print('Opening Bokeh application on http://localhost:5006/')
+
+#     server.io_loop.add_callback(server.show, "/")
+#     server.io_loop.start()
+
+#     server = None
+# custom_port = 5006
+    while server is None:
+        try:
+            server = Server(applications, extra_patterns=extra_patterns, **server_kwargs)
+        except OSError as e:
+            # if we get a port bind error and running locally with '-f',
+            # automatically select another port (useful for opening multiple logs)
+            if e.errno == errno.EADDRINUSE and show_ulog_file:
+                custom_port += 1
+                server_kwargs['port'] = custom_port
+            else:
+                raise
+    run_op = getattr(server, "run_until_shutdown", None)
+    if callable(run_op):
+        server.run_until_shutdown()
+    else:
+        server.start()
