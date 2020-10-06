@@ -352,31 +352,10 @@ def startserver(doc):
 # Setting num_procs here means we can't touch the IOLoop before now, we must
 # let Server handle that. If you need to explicitly handle IOLoops then you
 # will need to use the lower level BaseServer class.
-server = Server({'/': startserver}, num_procs=1)
-server.start()
-
-
-if __name__ == '__main__':
-#     print('Opening Bokeh application on http://localhost:5006/')
-
-#     server.io_loop.add_callback(server.show, "/")
-#     server.io_loop.start()
-
-#     server = None
-# custom_port = 5006
-    while server is None:
-        try:
-            server = Server(applications, extra_patterns=extra_patterns, **server_kwargs)
-        except OSError as e:
-            # if we get a port bind error and running locally with '-f',
-            # automatically select another port (useful for opening multiple logs)
-            if e.errno == errno.EADDRINUSE and show_ulog_file:
-                custom_port += 1
-                server_kwargs['port'] = custom_port
-            else:
-                raise
-    run_op = getattr(server, "run_until_shutdown", None)
-    if callable(run_op):
-        server.run_until_shutdown()
-    else:
-        server.start()
+#server = Server({'/': startserver}, num_procs=1)
+server = Server({'/': startserver}, **server_kwargs)
+run_op = getattr(server, "run_until_shutdown", None)
+if callable(run_op):
+    server.run_until_shutdown()
+else:
+    server.start()
